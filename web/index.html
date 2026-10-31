@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Riichi Mahjong</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Riichi Mahjong</h1>
+
+    <p id="status">Loading the engine...</p>
+
+    <form id="new-game">
+        <label>Seed <input id="seed" type="number" min="0" max="4294967295" placeholder="random"></label>
+        <button type="submit" disabled>New game</button>
+    </form>
+
+    <section id="table" hidden>
+        <p id="round"></p>
+        <p id="scores"></p>
+        <p>Your hand: <span id="hand" class="tiles"></span> <strong id="furiten" hidden>Furiten</strong></p>
+        <div id="actions"></div>
+    </section>
+
+    <pre id="log"></pre>
+
+    <script type="module" src="main.js"></script>
+</body>
+</html>

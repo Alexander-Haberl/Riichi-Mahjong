@@ -91,3 +91,37 @@ TEST_CASE("A view is a copy: it does not change with the round") {
     CHECK(view.riichiSticks() == 0);
     CHECK(view.wallRemaining() == wallBefore);
 }
+
+TEST_CASE("Furiten of the own seat") {
+    RoundState state = emptyRound();
+    state.players[0].hand = Hand(parseTiles("123m456p789s11z22z"));  // waits on 1z and 2z
+    state.players[1].hand = state.players[0].hand;
+
+    CHECK_FALSE(PlayerView(state, 0).furiten());
+
+    SECTION("a wait in the own river") {
+        state.players[0].river.push_back({tile("2z")});
+        CHECK(PlayerView(state, 0).furiten());
+    }
+    SECTION("a ron passed on") {
+        state.players[0].temporaryFuriten = true;
+        CHECK(PlayerView(state, 0).furiten());
+    }
+    SECTION("a ron passed on after riichi") {
+        state.players[0].riichiFuriten = true;
+        CHECK(PlayerView(state, 0).furiten());
+    }
+    SECTION("the furiten of another seat does not show") {
+        state.players[1].river.push_back({tile("2z")});
+        state.players[1].temporaryFuriten = true;
+        CHECK_FALSE(PlayerView(state, 0).furiten());
+    }
+    SECTION("a hand with a drawn tile has no waits, but keeps a ron passed on") {
+        state.players[0].river.push_back({tile("2z")});
+        state.players[0].hand.add(tile("9m"));
+        CHECK_FALSE(PlayerView(state, 0).furiten());
+
+        state.players[0].temporaryFuriten = true;
+        CHECK(PlayerView(state, 0).furiten());
+    }
+}

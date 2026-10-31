@@ -14,8 +14,9 @@ namespace mj {
 class PlayerView {
 public:
     PlayerView(const RoundState& state, int seat)
-        : seat_(seat), hand_(state.player(seat).hand), roundWind_(state.roundWind), dealer_(state.dealer),
-          honba_(state.honba), riichiSticks_(state.riichiSticks), currentSeat_(state.current),
+        : seat_(seat), hand_(state.player(seat).hand), furiten_(state.player(seat).isFuriten()),
+          roundWind_(state.roundWind), dealer_(state.dealer), honba_(state.honba),
+          riichiSticks_(state.riichiSticks), currentSeat_(state.current),
           wallRemaining_(state.wall.remaining()), doraIndicators_(state.wall.doraIndicators()) {
         for (int who = 0; who < 4; ++who) {
             const PlayerState& player = state.player(who);
@@ -26,6 +27,10 @@ public:
 
     int seat() const { return seat_; }
     const Hand& hand() const { return hand_; }
+    // Whether this seat is furiten; only known for the own seat. A hand that has
+    // just drawn or called has no waits, so until its discard this only reports
+    // a ron passed on, not a wait in the own river.
+    bool furiten() const { return furiten_; }
 
     const std::vector<RiverTile>& river(int who) const { return at(who).river; }
     const std::vector<Meld>& melds(int who) const { return at(who).melds; }
@@ -73,6 +78,7 @@ private:
 
     int seat_;
     Hand hand_;
+    bool furiten_;
     std::array<Seat, 4> seats_;
     Honor roundWind_;
     int dealer_;

@@ -1,6 +1,12 @@
 # UI design
 
-How the browser UI will work and how it talks to the engine. The engine side is done; the UI is not started.
+How the browser UI works and how it talks to the engine. The engine and the interface to the page are done; the page itself is only a plain text test page so far.
+
+## Running it
+
+`./serve.sh [port]` builds into `build-web` and serves `build-web/site` on `http://127.0.0.1:8000`, reachable from this machine only. After a change, run `cmake --build build-web` in a shell with the emsdk active (source ~/Dokumente/Programming/dependencies/emsdk/emsdk_env.sh), or `./serve.sh` again, and reload the page. Emscripten is in `~/Dokumente/Programming/dependencies/emsdk`; `EMSDK_DIR` overrides that path.
+
+The page's sources are in `web/`, and the build copies them next to the generated `engine.js` and `engine.wasm`.
 
 ## Decisions
 
@@ -45,11 +51,59 @@ A `GameStep` (`src/game/GameStep.hpp`) is `{GameEvent event; PlayerView view}`: 
 - `RoundEnd` is the place for the score screen. The game has already moved on internally, so the UI can simply wait for a click before playing the next step.
 - During a round, read scores from the views: `Game::scores()` only changes between rounds.
 
+## JSON between engine and page
+
+`src/web/WebGame.hpp` is the class JavaScript sees. Steps, decisions and the result leave C++ as JSON strings, and the answer comes back as an index into `legal`. So the page never builds an `Action`, Embind only has to expose one class, and everything except `Bindings.cpp` can be tested natively with Catch2.
+
+Tiles are Tenhou strings (`"5m"`, `"0p"`, `"7z"`), which can also name the tile images. Enums are their names, and an empty optional is `null`. Every event has all fields. Seats are absolute: the UI places them around the table relative to `view.seat`.
+
+```js
+// Step
+{
+  event: {
+    type: "Discard",                  // an EventType name
+    seat: 2,
+    tile: "5m",                       // or null
+    riichiDiscard: false,
+    meld: Meld,                       // or null
+    wins: [{ seat: 1, fromSeat: 2, han: 4, fu: 30, basicPoints: 1920,
+             name: "None",            // a ScoreName
+             yaku: [{ name: "Riichi", han: 1 }] }],
+    revealedHands: [null, { concealed: ["1m", ...], melds: [Meld] }, null, null],  // by seat
+    uraDoraIndicators: ["3p"],
+    abortReason: "SuufonRenda",       // or null
+    scoreChanges: [-3900, 3900, 0, 0]
+  },
+  view: {
+    seat: 0,
+    hand: ["1m", ...],                // in engine order: a drawn tile is last
+    furiten: false,                   // own seat only, see below
+    roundWind: "East", dealer: 0, honba: 0, riichiSticks: 0,
+    currentSeat: 2, wallRemaining: 69, doraIndicators: ["2s"],
+    seats: [{                         // by seat
+      river: [{ tile: "9p", tsumogiri: false, riichi: false, calledAway: false }],
+      melds: [Meld],
+      concealedCount: 13, score: 25000, riichi: false, seatWind: "East"
+    }, ...]
+  }
+}
+
+// Meld
+{ type: "Pon", handTiles: ["5m", "0m"], calledTile: "5m", fromSeat: 3, kanFromPon: false }
+
+// Decision: submit(i) answers with legal[i]. Pass and KyuushuKyuuhai have tile: null
+{ seat: 0, legal: [{ type: "Riichi", tile: "9p", handTiles: [] }, ...] }
+
+// Result: by player, the human is player 0
+{ scores: [31000, 25000, 24000, 20000], ranks: [1, 2, 3, 4], riichiSticksLeft: 0 }
+```
+
+`furiten` is only meaningful for a hand with waits. After a draw or call (`hand.length % 3 == 2`) it only reports a ron passed on, so a marker should keep its value until the discard.
+
 ## Still to do
 
-1. Emscripten build of the engine (`emcmake cmake`). It needs **`-fexceptions`**, because catching C++ exceptions is off by default and the engine's `std::logic_error`s would otherwise abort the page.
-2. A thin Embind layer that gives JavaScript `Game`, plain step and decision objects, and turns a chosen action back into an `Action`. `std::optional`, `std::array` and `Tile` probably need wrappers, or the step can cross as JSON.
-3. The UI: table layout, tile images, animations, hand selection, call and riichi prompts, round and game result screens. Tile images will be sorted out by the user, ask about them if they are needed.
-4. A fixed `RuleSet` for the game. The seed comes from the browser and should be shown, so a game can be replayed.
+1. The UI: table layout, tile images, animations, hand selection, call and riichi prompts, round and game result screens. Tile images will be sorted out by the user, ask about them if they are needed.
+
+The rules are `webRules()` in `src/web/WebGame.hpp`, the standard rules for now. The seed comes from the browser and is shown, so a game can be replayed.
 
 The AI is `ShantenPlayer` (`src/players/`), which is temporary and fast enough for the page's main thread. A stronger AI that thinks for seconds would need a Web Worker, because `submit()` would otherwise freeze the page.

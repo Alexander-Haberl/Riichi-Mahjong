@@ -23,6 +23,12 @@ if(RIICHI_SANITIZE)
     endif()
 endif()
 
+# Catching C++ exceptions is off by default in Emscripten.
+if(EMSCRIPTEN)
+    add_compile_options(-fexceptions)
+    add_link_options(-fexceptions)
+endif()
+
 # --- Engine library (no UI, no I/O) -----------------------------------------
 add_library(riichi_engine
     src/core/Tile.cpp
@@ -43,12 +49,53 @@ target_compile_options(riichi_engine PRIVATE
     $<$<CXX_COMPILER_ID:MSVC>:/W4>
 )
 
-# --- Game executable --------------------------------------------------------
-add_executable(riichi src/main.cpp)
-target_link_libraries(riichi PRIVATE riichi_engine)
+# --- Browser interface (needs no Emscripten) ---------------------------------
+find_package(nlohmann_json 3 QUIET)
+if(NOT nlohmann_json_FOUND)
+    include(FetchContent)
+    FetchContent_Declare(nlohmann_json
+        URL    https://github.com/nlohmann/json/releases/download/v3.12.0/json.tar.xz
+        SYSTEM
+    )
+    FetchContent_MakeAvailable(nlohmann_json)
+endif()
+
+add_library(riichi_web
+    src/web/Json.cpp
+    src/web/WebGame.cpp
+)
+target_link_libraries(riichi_web PUBLIC riichi_engine nlohmann_json::nlohmann_json)
+target_compile_options(riichi_web PRIVATE
+    $<$<CXX_COMPILER_ID:GNU,Clang>:-Wall -Wextra -Wpedantic -Wconversion -Wshadow>
+    $<$<CXX_COMPILER_ID:MSVC>:/W4>
+)
+
+if(EMSCRIPTEN)
+    # --- Browser build: the module and the page, together in site/ ----------
+    add_executable(riichi_wasm src/web/Bindings.cpp)
+    target_link_libraries(riichi_wasm PRIVATE riichi_web)
+    target_link_options(riichi_wasm PRIVATE
+        -lembind
+        -sMODULARIZE
+        -sEXPORT_ES6
+        -sENVIRONMENT=web,node
+        -sALLOW_MEMORY_GROWTH
+    )
+    set_target_properties(riichi_wasm PROPERTIES
+        OUTPUT_NAME engine
+        RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/site
+    )
+    add_custom_target(riichi_site ALL
+        COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/web ${CMAKE_BINARY_DIR}/site
+    )
+else()
+    # --- Game executable ----------------------------------------------------
+    add_executable(riichi src/main.cpp)
+    target_link_libraries(riichi PRIVATE riichi_engine)
+endif()
 
 # --- Tests ------------------------------------------------------------------
-if(RIICHI_BUILD_TESTS)
+if(RIICHI_BUILD_TESTS AND NOT EMSCRIPTEN)
     find_package(Catch2 3 QUIET)
     if(NOT Catch2_FOUND)
         include(FetchContent)
@@ -78,8 +125,9 @@ if(RIICHI_BUILD_TESTS)
         tests/test_game.cpp
         tests/test_yaku.cpp
         tests/test_player_view.cpp
+        tests/test_web.cpp
     )
-    target_link_libraries(riichi_tests PRIVATE riichi_engine Catch2::Catch2WithMain)
+    target_link_libraries(riichi_tests PRIVATE riichi_web Catch2::Catch2WithMain)
 
     include(Catch)
     catch_discover_tests(riichi_tests)
