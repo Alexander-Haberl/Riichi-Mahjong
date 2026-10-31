@@ -58,7 +58,8 @@ std::array<int, 4> payments(const RoundResult& result, int dealer, int honba, in
     return change;
 }
 
-Game::Game(std::array<IPlayer*, 4> players, Scorer scorer, unsigned seed) : rng_(seed), scorer_(std::move(scorer)) {
+Game::Game(std::array<IPlayer*, 4> players, Scorer scorer, unsigned seed, std::optional<int> viewerPlayer)
+    : rng_(seed), scorer_(std::move(scorer)) {
     std::array<int, 4> playerOfSeat{};
     std::iota(playerOfSeat.begin(), playerOfSeat.end(), 0);
     std::shuffle(playerOfSeat.begin(), playerOfSeat.end(), rng_);
@@ -67,7 +68,30 @@ Game::Game(std::array<IPlayer*, 4> players, Scorer scorer, unsigned seed) : rng_
         playerAtSeat_[static_cast<size_t>(seat)] = players[static_cast<size_t>(player)];
         seatOfPlayer_[static_cast<size_t>(player)] = seat;
     }
+    if (viewerPlayer) viewerSeat_ = seatOfPlayer_[static_cast<size_t>(*viewerPlayer)];
     scores_.fill(rules().startingPoints);
+}
+
+void Game::start() {
+    startRound();
+    continueGame();
+}
+
+std::optional<Decision> Game::pending() const {
+    if (!round_) return std::nullopt;
+    return round_->pending();
+}
+
+void Game::submit(Action action) {
+    if (!round_) throw std::logic_error("no decision is pending");
+    round_->submit(std::move(action));
+    continueGame();
+}
+
+std::vector<GameStep> Game::takeSteps() {
+    std::vector<GameStep> steps = std::move(steps_);
+    steps_.clear();
+    return steps;
 }
 
 GameResult Game::play() {
@@ -76,18 +100,68 @@ GameResult Game::play() {
 }
 
 RoundResult Game::playRound() {
+    startRound();
+    if (!runRound()) throw std::logic_error("playRound needs an AI in every seat");
+    return finishRound();
+}
+
+void Game::startRound() {
     if (over_) throw std::logic_error("the game is already over");
 
     RoundState state(Wall(rng_, rules().redFivesPerSuit), roundWind_, dealer_, scores_, honba_, riichiSticks_);
-    RoundController round(std::move(state), playerAtSeat_, scorer_);
-    RoundResult result = round.play();
-    advance(result, round.state());
+    round_.emplace(std::move(state), scorer_, viewerSeat_);
+    round_->start();
+}
+
+bool Game::runRound() {
+    while (true) {
+        collectSteps();
+        const std::optional<Decision>& decision = round_->pending();
+        if (!decision) return true;
+        IPlayer* player = playerAtSeat_[static_cast<size_t>(decision->seat)];
+        if (!player) return false;
+        round_->submit(player->chooseAction(PlayerView(round_->state(), decision->seat), decision->legal));
+    }
+}
+
+RoundResult Game::finishRound() {
+    const RoundResult result = *round_->result();
+    RoundState finished = round_->state();
+
+    const std::array<int, 4> change = payments(result, dealer_, honba_, finished.riichiSticks);
+    advance(result, finished, change);
+
+    // The table after the payments.
+    for (int seat = 0; seat < 4; ++seat) finished.player(seat).score = scores_[static_cast<size_t>(seat)];
+    finished.riichiSticks = riichiSticks_;
+
+    GameEvent roundEnd{EventType::RoundEnd};
+    roundEnd.scoreChanges = change;
+    record(std::move(roundEnd), finished);
+    if (over_) record({EventType::GameEnd}, finished);
+
+    round_.reset();
     return result;
 }
 
-void Game::advance(const RoundResult& result, const RoundState& finished) {
+void Game::continueGame() {
+    while (runRound()) {
+        finishRound();
+        if (over_) return;
+        startRound();
+    }
+}
+
+void Game::collectSteps() {
+    for (GameStep& step : round_->takeSteps()) steps_.push_back(std::move(step));
+}
+
+void Game::record(GameEvent event, const RoundState& state) {
+    if (viewerSeat_) steps_.push_back({std::move(event), PlayerView(state, *viewerSeat_)});
+}
+
+void Game::advance(const RoundResult& result, const RoundState& finished, const std::array<int, 4>& change) {
     // The finished round's scores already include its riichi deposits.
-    const std::array<int, 4> change = payments(result, dealer_, honba_, finished.riichiSticks);
     for (int seat = 0; seat < 4; ++seat) {
         scores_[static_cast<size_t>(seat)] = finished.player(seat).score + change[static_cast<size_t>(seat)];
     }
@@ -119,7 +193,7 @@ void Game::advance(const RoundResult& result, const RoundState& finished) {
     }
     if (dealerKeeps) return;
 
-    dealer_ = (dealer_ + 1) % 4;
+    dealer_ = seatAdd(dealer_, 1);
     if (dealer_ != 0) return;
     // The seat went round the table: next round wind, or the end of the game.
     const Honor lastWind = rules().gameLength == GameLength::Tonpuusen ? Honor::East : Honor::South;

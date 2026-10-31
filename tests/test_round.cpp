@@ -59,9 +59,9 @@ TEST_CASE("A round without wins or calls ends in an exhaustive draw") {
     std::mt19937 rng(3);
     std::array<TestPlayer, 4> players;
     Scorer scorer = noYaku();
-    RoundController round(RoundState(Wall(rng), Honor::East, 0, kScores), seats(players), scorer);
+    RoundController round(RoundState(Wall(rng), Honor::East, 0, kScores), scorer);
 
-    RoundResult result = round.play();
+    RoundResult result = round.play(seats(players));
 
     CHECK(result.end == RoundEnd::ExhaustiveDraw);
     CHECK(result.wins.empty());
@@ -75,9 +75,9 @@ TEST_CASE("The dealer starts, whatever their seat") {
     std::mt19937 rng(5);
     std::array<TestPlayer, 4> players;
     Scorer scorer = noYaku();
-    RoundController round(RoundState(Wall(rng), Honor::East, 2, kScores), seats(players), scorer);
+    RoundController round(RoundState(Wall(rng), Honor::East, 2, kScores), scorer);
 
-    round.play();
+    round.play(seats(players));
 
     const RoundState& state = round.state();
     CHECK(state.players[2].seatWind == Honor::East);
@@ -94,9 +94,9 @@ TEST_CASE("Ron on a discard ends the round") {
     Scorer scorer = alwaysYaku();
     RoundController round(RoundState(stackedWall({kJunk, "123m456p789s11z22z", kJunk, kJunk}, "1z"),
                                      Honor::East, 0, kScores),
-                          seats(players), scorer);
+                          scorer);
 
-    RoundResult result = round.play();
+    RoundResult result = round.play(seats(players));
 
     CHECK(result.end == RoundEnd::Ron);
     REQUIRE(result.wins.size() == 1);
@@ -112,9 +112,9 @@ TEST_CASE("Tsumo on the drawn tile ends the round") {
     Scorer scorer = alwaysYaku();
     RoundController round(RoundState(stackedWall({kJunk, "123m456p789s11z22z", kJunk, kJunk}, "9m1z"),
                                      Honor::East, 0, kScores),
-                          seats(players), scorer);
+                          scorer);
 
-    RoundResult result = round.play();
+    RoundResult result = round.play(seats(players));
 
     CHECK(result.end == RoundEnd::Tsumo);
     REQUIRE(result.wins.size() == 1);
@@ -132,8 +132,8 @@ TEST_CASE("Double ron, or only the first player in turn order") {
         Scorer scorer = alwaysYaku(rules);
         RoundController round(RoundState(stackedWall({kJunk, "123m456p789s11z22z", "123p456s789m11z33z", kJunk}, "1z"),
                                          Honor::East, 0, kScores),
-                              seats(players), scorer);
-        return round.play();
+                              scorer);
+        return round.play(seats(players));
     };
 
     SECTION("double ron") {
@@ -163,8 +163,8 @@ TEST_CASE("Several rons are listed in turn order from the discarder, not by seat
         RoundController round(RoundState(stackedWall({"123m456p789s11z22z", kJunk, kJunk, "123p456s789m11z33z"},
                                                      "8p8p1z"),
                                          Honor::East, 0, kScores),
-                              seats(players), scorer);
-        return round.play();
+                              scorer);
+        return round.play(seats(players));
     };
 
     SECTION("multiple ron") {
@@ -190,9 +190,9 @@ TEST_CASE("Pon moves the turn to the caller") {
     Scorer scorer = noYaku();
     RoundController round(RoundState(stackedWall({kJunk, kJunk, "147m259p369s11z56z", kJunk}, "1z"),
                                      Honor::East, 0, kScores),
-                          seats(players), scorer);
+                          scorer);
 
-    RoundResult result = round.play();
+    RoundResult result = round.play(seats(players));
 
     const RoundState& state = round.state();
     CHECK(result.end == RoundEnd::ExhaustiveDraw);
@@ -213,9 +213,9 @@ TEST_CASE("Open kan gives the caller a replacement draw") {
     Scorer scorer = noYaku();
     RoundController round(RoundState(stackedWall({kJunk, kJunk, "147m259p369s111z5z", kJunk}, "1z"),
                                      Honor::East, 0, kScores),
-                          seats(players), scorer);
+                          scorer);
 
-    round.play();
+    round.play(seats(players));
 
     const RoundState& state = round.state();
     REQUIRE(state.players[2].hand.melds().size() == 1);
@@ -233,9 +233,9 @@ TEST_CASE("Closed kan draws a replacement tile and reveals a dora") {
     Scorer scorer = noYaku();
     RoundController round(RoundState(stackedWall({"1111m259p369s567z", kJunk, kJunk, kJunk}, ""),
                                      Honor::East, 0, kScores),
-                          seats(players), scorer);
+                          scorer);
 
-    round.play();
+    round.play(seats(players));
 
     const RoundState& state = round.state();
     REQUIRE(state.players[0].hand.melds().size() == 1);
@@ -259,9 +259,9 @@ TEST_CASE("A kan from pon can be robbed") {
     RoundController round(RoundState(stackedWall({kJunk, "123m456p789m11z46s", "55s147m259p369m56z", kJunk},
                                                  "5s8p8p8p5s"),
                                      Honor::East, 0, kScores),
-                          seats(players), scorer);
+                          scorer);
 
-    RoundResult result = round.play();
+    RoundResult result = round.play(seats(players));
 
     CHECK(result.end == RoundEnd::Ron);
     REQUIRE(result.wins.size() == 1);
@@ -278,9 +278,9 @@ TEST_CASE("Riichi costs a stick and locks the hand") {
     Scorer scorer = noYaku(rules);
     RoundController round(RoundState(stackedWall({"123m456p789s111z2z", kJunk, kJunk, kJunk}, "3z"),
                                      Honor::East, 0, kScores),
-                          seats(players), scorer);
+                          scorer);
 
-    RoundResult result = round.play();
+    RoundResult result = round.play(seats(players));
 
     const RoundState& state = round.state();
     const PlayerState& dealer = state.players[0];
@@ -308,9 +308,9 @@ TEST_CASE("Kyuushu kyuuhai ends the round on the first turn") {
     Scorer scorer = noYaku(rules);
     RoundController round(RoundState(stackedWall({"19m19p19s1234z234m", kJunk, kJunk, kJunk}, "5m"),
                                      Honor::East, 0, kScores),
-                          seats(players), scorer);
+                          scorer);
 
-    RoundResult result = round.play();
+    RoundResult result = round.play(seats(players));
 
     CHECK(result.end == RoundEnd::Aborted);
     CHECK(result.abortReason == AbortReason::KyuushuKyuuhai);
@@ -329,8 +329,8 @@ TEST_CASE("Triple ron aborts the round, unless the rules say otherwise") {
                                                       "123s456m789p11z44z"},
                                                      "1z"),
                                          Honor::East, 0, kScores),
-                              seats(players), scorer);
-        return round.play();
+                              scorer);
+        return round.play(seats(players));
     };
 
     SECTION("aborted") {
@@ -363,8 +363,8 @@ TEST_CASE("Four identical winds as first discards abort the round") {
         // Everyone discards the tile they draw, so the draws are the first four discards.
         Scorer scorer = noYaku(rules);
         RoundController round(RoundState(stackedWall({kJunk, kJunk, kJunk, kJunk}, draws), Honor::East, 0, kScores),
-                              seats(players), scorer);
-        return round.play();
+                              scorer);
+        return round.play(seats(players));
     };
 
     SECTION("four East") {
@@ -394,9 +394,9 @@ TEST_CASE("Four riichi abort the round") {
     Scorer scorer = noYaku(rules);
     RoundController round(RoundState(stackedWall({tenpai, tenpai, tenpai, tenpai}, "3z3z3z3z"),
                                      Honor::East, 0, kScores),
-                          seats(players), scorer);
+                          scorer);
 
-    RoundResult result = round.play();
+    RoundResult result = round.play(seats(players));
 
     CHECK(result.end == RoundEnd::Aborted);
     CHECK(result.abortReason == AbortReason::SuuchaRiichi);
@@ -415,8 +415,8 @@ TEST_CASE("Four kans by different players abort the round") {
         Scorer scorer = noYaku(rules);
         RoundController round(RoundState(stackedWall({"1111m2222m369s56z", "3333p4444p369s56z", kJunk, kJunk}, ""),
                                          Honor::East, 0, kScores),
-                              seats(players), scorer);
-        RoundResult result = round.play();
+                              scorer);
+        RoundResult result = round.play(seats(players));
 
         CHECK(result.end == RoundEnd::Aborted);
         CHECK(result.abortReason == AbortReason::Suukaikan);
@@ -427,8 +427,8 @@ TEST_CASE("Four kans by different players abort the round") {
         Scorer scorer = noYaku(rules);
         RoundController round(RoundState(stackedWall({"1111m2222m3333m4z", kJunk, kJunk, kJunk}, ""),
                                          Honor::East, 0, kScores),
-                              seats(players), scorer);
-        RoundResult result = round.play();
+                              scorer);
+        RoundResult result = round.play(seats(players));
 
         CHECK(result.end == RoundEnd::ExhaustiveDraw);
         CHECK(round.state().player(0).hand.melds().size() == 4);
@@ -440,7 +440,226 @@ TEST_CASE("Illegal choices are rejected") {
     std::mt19937 rng(1);
     std::array<CheatingPlayer, 4> players;
     Scorer scorer = noYaku();
-    RoundController round(RoundState(Wall(rng), Honor::East, 0, kScores), seats(players), scorer);
+    RoundController round(RoundState(Wall(rng), Honor::East, 0, kScores), scorer);
 
-    CHECK_THROWS_AS(round.play(), std::logic_error);
+    CHECK_THROWS_AS(round.play(seats(players)), std::logic_error);
+}
+
+// --- Stepping ---------------------------------------------------------------
+
+namespace {
+
+std::vector<EventType> eventTypes(const std::vector<GameStep>& steps) {
+    std::vector<EventType> types;
+    for (const GameStep& step : steps) types.push_back(step.event.type);
+    return types;
+}
+
+// The first legal action of this type.
+Action pick(const RoundController& round, ActionType type) {
+    const std::vector<Action>& legal = round.pending()->legal;
+    const auto it = std::find_if(legal.begin(), legal.end(), [type](const Action& a) { return a.type == type; });
+    REQUIRE(it != legal.end());
+    return *it;
+}
+
+}  // namespace
+
+TEST_CASE("The round stops at every decision and goes on with submit") {
+    Scorer scorer = alwaysYaku();
+    RoundController round(RoundState(stackedWall({kJunk, "123m456p789s11z22z", kJunk, kJunk}, "1z"),
+                                     Honor::East, 0, kScores),
+                          scorer, 1);
+
+    round.start();
+    REQUIRE(round.pending().has_value());
+    CHECK(round.pending()->seat == 0);
+    CHECK_FALSE(round.result().has_value());
+    auto steps = round.takeSteps();
+    CHECK(eventTypes(steps) == std::vector{EventType::RoundStart, EventType::Draw});
+    CHECK(steps[1].event.seat == 0);
+    CHECK(steps[1].view.concealedCount(0) == 14);
+
+    round.submit({ActionType::Discard, tile("1z")});
+    REQUIRE(round.pending().has_value());
+    CHECK(round.pending()->seat == 1);
+    steps = round.takeSteps();
+    CHECK(eventTypes(steps) == std::vector{EventType::Discard});
+    CHECK(steps[0].event.tile == tile("1z"));
+    CHECK(steps[0].view.river(0).size() == 1);
+
+    round.submit({ActionType::Ron, tile("1z")});
+    CHECK_FALSE(round.pending().has_value());
+    REQUIRE(round.result().has_value());
+    CHECK(round.result()->end == RoundEnd::Ron);
+    steps = round.takeSteps();
+    REQUIRE(eventTypes(steps) == std::vector{EventType::Ron});
+    CHECK(steps[0].event.seat == 0);  // the discarder
+    REQUIRE(steps[0].event.wins.size() == 1);
+    CHECK(steps[0].event.wins[0].seat == 1);
+    CHECK(steps[0].event.revealedHands[1].has_value());
+    CHECK_FALSE(steps[0].event.revealedHands[0].has_value());
+}
+
+TEST_CASE("Submit rejects illegal actions and keeps the decision") {
+    Scorer scorer = noYaku();
+    RoundController round(RoundState(stackedWall({kJunk, kJunk, kJunk, kJunk}, "1z"), Honor::East, 0, kScores), scorer);
+
+    CHECK_THROWS_AS(round.submit({ActionType::Discard, tile("1z")}), std::logic_error);  // not started
+    round.start();
+    CHECK_THROWS_AS(round.submit({ActionType::Tsumo}), std::logic_error);
+    REQUIRE(round.pending().has_value());
+    CHECK(round.pending()->seat == 0);
+}
+
+TEST_CASE("Without a viewer no steps are recorded") {
+    std::array<TestPlayer, 4> players;
+    Scorer scorer = noYaku();
+    RoundController round(RoundState(stackedWall({kJunk, kJunk, kJunk, kJunk}, ""), Honor::East, 0, kScores), scorer);
+
+    round.play(seats(players));
+    CHECK(round.takeSteps().empty());
+}
+
+TEST_CASE("A viewer only sees their own draws") {
+    std::array<TestPlayer, 4> players;
+    Scorer scorer = noYaku();
+    RoundController round(RoundState(stackedWall({kJunk, kJunk, kJunk, kJunk}, ""), Honor::East, 0, kScores), scorer, 2);
+
+    round.play(seats(players));
+    for (const GameStep& step : round.takeSteps()) {
+        CHECK(step.view.seat() == 2);
+        if (step.event.type == EventType::Draw) CHECK(step.event.tile.has_value() == (step.event.seat == 2));
+    }
+}
+
+TEST_CASE("Each step shows the table right after its event") {
+    Scorer scorer = noYaku();
+    RoundController round(RoundState(stackedWall({"123m456p789s111z2z", kJunk, kJunk, kJunk}, "3z"),
+                                     Honor::East, 0, kScores),
+                          scorer, 0);
+    round.start();
+    round.takeSteps();
+
+    round.submit({ActionType::Riichi, tile("2z")});
+    const auto steps = round.takeSteps();
+    REQUIRE(eventTypes(steps) == std::vector{EventType::Discard, EventType::Draw});
+
+    // The stick is only paid once the discard was not ronned.
+    CHECK(steps[0].event.riichiDiscard);
+    CHECK(steps[0].view.riichi(0));
+    CHECK(steps[0].view.riichiSticks() == 0);
+    CHECK(steps[0].view.score(0) == 25000);
+    CHECK(steps[1].view.riichiSticks() == 1);
+    CHECK(steps[1].view.score(0) == 24000);
+}
+
+TEST_CASE("A closed kan is followed by a dora and a draw of the same player") {
+    Scorer scorer = noYaku();
+    RoundController round(RoundState(stackedWall({"1111m259p369s567z", kJunk, kJunk, kJunk}, ""),
+                                     Honor::East, 0, kScores),
+                          scorer, 0);
+    round.start();
+    round.takeSteps();
+
+    round.submit(pick(round, ActionType::ClosedKan));
+    const auto steps = round.takeSteps();
+    REQUIRE(eventTypes(steps) == std::vector{EventType::Kan, EventType::DoraRevealed, EventType::Draw});
+    CHECK(steps[0].event.meld.has_value());
+    CHECK(steps[0].view.doraIndicators().size() == 1);
+    CHECK(steps[1].view.doraIndicators().size() == 2);
+    CHECK(steps[2].event.tile == tile("8p"));
+    REQUIRE(round.pending().has_value());
+    CHECK(round.pending()->seat == 0);
+}
+
+TEST_CASE("A pon gives no draw: the caller decides next") {
+    Scorer scorer = noYaku();
+    RoundController round(RoundState(stackedWall({kJunk, kJunk, "147m259p369s11z56z", kJunk}, "1z"),
+                                     Honor::East, 0, kScores),
+                          scorer, 2);
+    round.start();
+    round.submit({ActionType::Discard, tile("1z")});
+    REQUIRE(round.pending()->seat == 2);
+    round.takeSteps();
+
+    round.submit(pick(round, ActionType::Pon));
+    const auto steps = round.takeSteps();
+    REQUIRE(eventTypes(steps) == std::vector{EventType::Pon});
+    CHECK(steps[0].event.seat == 2);
+    CHECK(steps[0].event.meld.has_value());
+    CHECK(steps[0].view.river(0)[0].calledAway);
+    REQUIRE(round.pending().has_value());
+    CHECK(round.pending()->seat == 2);
+}
+
+TEST_CASE("Reactions are asked one seat at a time, in turn order") {
+    Scorer scorer = alwaysYaku();
+    RoundController round(RoundState(stackedWall({"123m456p789s11z22z", kJunk, kJunk, "123p456s789m11z33z"}, "8p8p1z"),
+                                     Honor::East, 0, kScores),
+                          scorer, 0);
+    round.start();
+    round.submit({ActionType::Discard, tile("8p")});
+    round.submit({ActionType::Discard, tile("8p")});
+    round.submit({ActionType::Discard, tile("1z")});  // seat 2 discards what seats 3 and 0 wait on
+    round.takeSteps();
+
+    REQUIRE(round.pending()->seat == 3);
+    round.submit(pick(round, ActionType::Ron));
+    CHECK_FALSE(round.result().has_value());
+    REQUIRE(round.pending()->seat == 0);
+    round.submit(pick(round, ActionType::Ron));
+
+    REQUIRE(round.result().has_value());
+    REQUIRE(round.result()->wins.size() == 2);
+    CHECK(round.result()->wins[0].seat == 3);
+    const auto steps = round.takeSteps();
+    REQUIRE(eventTypes(steps) == std::vector{EventType::Ron});
+    CHECK(steps[0].event.seat == 2);
+    CHECK(steps[0].event.revealedHands[0].has_value());
+    CHECK(steps[0].event.revealedHands[3].has_value());
+}
+
+TEST_CASE("A kan from pon is only reported when nobody robs it") {
+    // The chankan setup from above: seat 2 adds to its pon, seat 1 waits on that tile.
+    auto play = [](const Scorer& scorer) {
+        std::array<TestPlayer, 4> players;
+        players[1].takeWins = true;
+        players[2].callPon = true;
+        players[2].declareKanFromPon = true;
+        RoundController round(RoundState(stackedWall({kJunk, "123m456p789m11z46s", "55s147m259p369m56z", kJunk},
+                                                     "5s8p8p8p5s"),
+                                         Honor::East, 0, kScores),
+                              scorer, 1);
+        round.play(seats(players));
+        return eventTypes(round.takeSteps());
+    };
+    auto count = [](const std::vector<EventType>& types, EventType type) {
+        return std::count(types.begin(), types.end(), type);
+    };
+
+    const Scorer chankanOnly = makeScorer({kChankanOnly});
+    const auto robbed = play(chankanOnly);
+    CHECK(count(robbed, EventType::Kan) == 0);
+    CHECK(robbed.back() == EventType::Ron);
+
+    const Scorer nobodyWins = noYaku();
+    const auto completed = play(nobodyWins);
+    CHECK(count(completed, EventType::Kan) == 1);
+    CHECK(count(completed, EventType::DoraRevealed) == 1);
+}
+
+TEST_CASE("An exhaustive draw reveals only the tenpai hands") {
+    std::array<TestPlayer, 4> players;
+    players[0].declareRiichi = true;
+    Scorer scorer = noYaku();
+    RoundController round(RoundState(stackedWall({"123m456p789s111z2z", kJunk, kJunk, kJunk}, "3z"),
+                                     Honor::East, 0, kScores),
+                          scorer, 1);
+    round.play(seats(players));
+
+    const auto steps = round.takeSteps();
+    REQUIRE(steps.back().event.type == EventType::ExhaustiveDraw);
+    CHECK(steps.back().event.revealedHands[0].has_value());
+    CHECK_FALSE(steps.back().event.revealedHands[1].has_value());
 }

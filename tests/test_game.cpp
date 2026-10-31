@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <array>
 #include <numeric>
+#include <optional>
 #include <set>
 #include <stdexcept>
 #include <utility>
@@ -109,7 +110,7 @@ TEST_CASE("Dealer rotation, honba and sticks follow the round result") {
         const RoundRecord& before = rounds[i];
         const RoundRecord& after = rounds[i + 1];
         const RoundResult& result = before.result;
-        const int nextDealer = (before.dealer + 1) % 4;
+        const int nextDealer = seatAdd(before.dealer, 1);
 
         if (result.end == RoundEnd::Tsumo || result.end == RoundEnd::Ron) {
             ++wins;
@@ -235,4 +236,120 @@ TEST_CASE("No rounds after the end") {
 
     CHECK(game.isOver());
     CHECK_THROWS_AS(game.playRound(), std::logic_error);
+}
+
+// --- Stepping ---------------------------------------------------------------
+
+namespace {
+
+long countSteps(const std::vector<GameStep>& steps, EventType type) {
+    return std::count_if(steps.begin(), steps.end(), [type](const GameStep& s) { return s.event.type == type; });
+}
+
+}  // namespace
+
+TEST_CASE("A game of AIs runs through to its end on start") {
+    std::array<TestPlayer, 4> players;
+    playToWin(players);
+    RuleSet rules = testRules();
+    rules.gameLength = GameLength::Tonpuusen;
+    Game game(pointers(players), alwaysYaku(rules), 7, 0);
+
+    game.start();
+    CHECK(game.isOver());
+    CHECK_FALSE(game.pending().has_value());
+
+    const auto steps = game.takeSteps();
+    REQUIRE_FALSE(steps.empty());
+    CHECK(steps.front().event.type == EventType::RoundStart);
+    CHECK(steps.back().event.type == EventType::GameEnd);
+    CHECK(countSteps(steps, EventType::GameEnd) == 1);
+    CHECK(countSteps(steps, EventType::RoundStart) == countSteps(steps, EventType::RoundEnd));
+    CHECK(countSteps(steps, EventType::RoundStart) >= 4);
+    CHECK(steps.front().view.seat() == players[0].seat);
+}
+
+TEST_CASE("The round end step shows the table after the payments") {
+    std::array<TestPlayer, 4> players;
+    playToWin(players);
+    RuleSet rules = testRules();
+    rules.gameLength = GameLength::Tonpuusen;
+    Game game(pointers(players), alwaysYaku(rules), 7, 0);
+    game.start();
+
+    const auto steps = game.takeSteps();
+    int roundEnds = 0;
+    for (size_t i = 1; i < steps.size(); ++i) {
+        if (steps[i].event.type != EventType::RoundEnd) continue;
+        ++roundEnds;
+        for (int seat = 0; seat < 4; ++seat) {
+            INFO("step " << i << ", seat " << seat);
+            const int change = steps[i].event.scoreChanges[static_cast<size_t>(seat)];
+            CHECK(steps[i].view.score(seat) == steps[i - 1].view.score(seat) + change);
+        }
+    }
+    CHECK(roundEnds >= 4);
+
+    for (int seat = 0; seat < 4; ++seat) {
+        CHECK(steps.back().view.score(seat) == game.scores()[static_cast<size_t>(seat)]);
+    }
+    CHECK(steps.back().view.riichiSticks() == game.riichiSticks());
+}
+
+TEST_CASE("The game stops at human decisions and plays the same as with an AI") {
+    auto setHabits = [](TestPlayer& p) {
+        p.minimizeShanten = true;
+        p.declareRiichi = true;
+        p.takeWins = true;
+    };
+    constexpr unsigned kSeed = 9;
+
+    // Player 1 as an AI.
+    std::array<TestPlayer, 4> ais;
+    playToWin(ais);
+    Game blocking(pointers(ais), alwaysYaku(), kSeed);
+    const GameResult expected = blocking.play();
+
+    // Player 1 answered from outside, with the same habits.
+    std::array<TestPlayer, 4> others;
+    playToWin(others);
+    std::array<IPlayer*, 4> seats = pointers(others);
+    seats[1] = nullptr;
+    Game game(seats, alwaysYaku(), kSeed, 1);
+    TestPlayer human;
+    setHabits(human);
+
+    game.start();
+    std::optional<PlayerView> view;
+    int decisions = 0;
+    while (true) {
+        for (const GameStep& step : game.takeSteps()) view = step.view;
+        const std::optional<Decision> decision = game.pending();
+        if (!decision) break;
+        REQUIRE(view.has_value());
+        CHECK(decision->seat == view->seat());  // only the human's decisions get here
+        game.submit(human.chooseAction(*view, decision->legal));
+        ++decisions;
+    }
+
+    CHECK(decisions > 0);
+    CHECK(game.isOver());
+    CHECK(game.result().scores == expected.scores);
+    CHECK(game.result().ranks == expected.ranks);
+}
+
+TEST_CASE("Blocking play needs an AI in every seat") {
+    std::array<TestPlayer, 4> players;
+    std::array<IPlayer*, 4> seats = pointers(players);
+    seats[2] = nullptr;
+    Game game(seats, noYaku(), 1);
+
+    CHECK_THROWS_AS(game.play(), std::logic_error);
+}
+
+TEST_CASE("Submit needs a pending decision") {
+    std::array<TestPlayer, 4> players;
+    Game game(pointers(players), noYaku(drawOnlyRules()), 1);
+
+    CHECK_THROWS_AS(game.submit({ActionType::Pass}), std::logic_error);  // not started
 }

@@ -1,8 +1,11 @@
 #pragma once
 
 #include <array>
+#include <optional>
 #include <random>
+#include <vector>
 
+#include "game/GameStep.hpp"
 #include "game/Player.hpp"
 #include "game/RoundController.hpp"
 #include "rules/RuleSet.hpp"
@@ -31,18 +34,40 @@ std::array<int, 4> payments(const RoundResult& result, int dealer, int honba, in
 // The players are seated in random order; seat 0 is the first dealer. The game
 // ends when the dealer of the last round (East 4 or South 4) loses the seat,
 // or with endOnBust as soon as a player is below 0.
+//
+// A player that is nullptr is a human: the game stops at their decisions, and
+// the caller answers with submit. All other players are asked directly, so
+// the game runs from one human decision to the next, across rounds.
 class Game {
 public:
     // `seed` decides the seating and every wall, so a game can be replayed.
-    // The scorer's rules are the rules of the game.
-    Game(std::array<IPlayer*, 4> players, Scorer scorer, unsigned seed);
+    // The scorer's rules are the rules of the game. With a viewerPlayer, the
+    // game is recorded as GameSteps as this player sees it.
+    Game(std::array<IPlayer*, 4> players, Scorer scorer, unsigned seed,
+         std::optional<int> viewerPlayer = std::nullopt);
 
-    // Plays all remaining rounds and returns the final result.
+    // The rounds refer to the game's own scorer.
+    Game(const Game&) = delete;
+    Game& operator=(const Game&) = delete;
+
+    // Starts the game and runs to the first human decision, or to its end.
+    void start();
+
+    // The human decision the game is waiting for; empty if there is none.
+    std::optional<Decision> pending() const;
+
+    // Answers the pending decision and runs to the next one, or to the end.
+    // Throws std::logic_error if nothing is pending or the action is not legal.
+    void submit(Action action);
+
+    // Everything recorded since the last call, in order.
+    std::vector<GameStep> takeSteps();
+
+    // Plays all remaining rounds and returns the final result. Needs an AI in every seat.
     GameResult play();
 
-    // Plays the next round, then moves on to the following one (dealer, honba,
-    // sticks, round wind). For a UI that wants to show something between rounds.
-    // Throws std::logic_error if the game is already over.
+    // Plays one round and moves on to the following one. Needs an AI in every
+    // seat. Throws std::logic_error if the game is already over.
     RoundResult playRound();
 
     bool isOver() const { return over_; }
@@ -50,7 +75,7 @@ public:
 
     const RuleSet& rules() const { return scorer_.rules(); }
 
-    // State of the next round to be played; seats, not players.
+    // State of the current round, or the next one between rounds; seats, not players.
     Honor roundWind() const { return roundWind_; }
     int dealer() const { return dealer_; }
     int honba() const { return honba_; }
@@ -58,13 +83,29 @@ public:
     const std::array<int, 4>& scores() const { return scores_; }
 
 private:
-    // Payments, dealer rotation, honba, sticks, round wind and game end after a round.
-    void advance(const RoundResult& result, const RoundState& finished);
+    void startRound();
+    // Answers AI decisions. Returns true when the round is over, false when
+    // it waits for a human.
+    bool runRound();
+    // Payments and the move to the next round.
+    RoundResult finishRound();
+    // Runs rounds until a human has to decide or the game is over.
+    void continueGame();
+
+    // Dealer rotation, honba, sticks, round wind and game end after a round.
+    void advance(const RoundResult& result, const RoundState& finished, const std::array<int, 4>& change);
+
+    void collectSteps();
+    void record(GameEvent event, const RoundState& state);
 
     std::mt19937 rng_;
     Scorer scorer_;
     std::array<int, 4> seatOfPlayer_;      // seatOfPlayer_[player] = seat
     std::array<IPlayer*, 4> playerAtSeat_;
+    std::optional<int> viewerSeat_;
+
+    std::optional<RoundController> round_;  // the round in progress
+    std::vector<GameStep> steps_;
 
     std::array<int, 4> scores_;  // by seat
     Honor roundWind_ = Honor::East;

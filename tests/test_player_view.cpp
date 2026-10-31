@@ -58,3 +58,36 @@ TEST_CASE("Visible tiles: a tile called away from a river counts once") {
 
     CHECK(count(PlayerView(state, 0).visibleTiles(), "1m") == 3);
 }
+
+TEST_CASE("A view counts the concealed tiles of every seat") {
+    RoundState state = emptyRound();
+    state.players[0].hand = Hand(parseTiles("123m"));
+    state.players[2].hand = Hand(parseTiles("99m12p"));
+    state.players[2].hand.addMeld({MeldType::Pon, parseTiles("99m"), tile("9m"), 1});
+
+    const PlayerView view(state, 0);
+    CHECK(view.concealedCount(0) == 3);
+    CHECK(view.concealedCount(2) == 2);  // the two tiles of the pon left the hand
+    CHECK(view.concealedCount(3) == 0);
+}
+
+TEST_CASE("A view is a copy: it does not change with the round") {
+    RoundState state = emptyRound();
+    state.players[0].hand = Hand(parseTiles("123m"));
+    state.players[1].river.push_back({tile("2m")});
+
+    const PlayerView view(state, 0);
+    const int wallBefore = view.wallRemaining();
+
+    state.players[0].hand.add(tile("9p"));
+    state.players[1].river.push_back({tile("3m")});
+    state.players[1].score = 0;
+    state.riichiSticks = 3;
+    state.wall.draw();
+
+    CHECK(view.hand().concealedCount() == 3);
+    CHECK(view.river(1).size() == 1);
+    CHECK(view.score(1) == 25000);
+    CHECK(view.riichiSticks() == 0);
+    CHECK(view.wallRemaining() == wallBefore);
+}

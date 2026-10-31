@@ -191,7 +191,7 @@ namespace mj{
 
         std::vector<Action> computeChiActions(const RoundState& state, int seat, Tile tile, int fromSeat,
                                       ClaimSource source, const RuleSet& rules) {
-            const bool fromLeft = relativeSeat(seat, fromSeat) == 3;
+            const bool fromLeft = seat == seatAdd(fromSeat, 1);
             if (!canCall(state, seat, source) || !fromLeft || tile.isHonor()) return {};
 
             // Offsets of the two hand tiles from the called tile: called is the high, middle or low end.

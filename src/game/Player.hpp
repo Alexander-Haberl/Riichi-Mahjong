@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <vector>
 
 #include "game/Action.hpp"
@@ -7,39 +8,50 @@
 
 namespace mj {
 
-// What one seat is allowed to see of the round: its own hand, and the
-// public information about everyone. No other hands, no wall order.
+// What one seat is allowed to see of the round at one moment: its own hand, and
+// the public information about everyone. No other hands, no wall order. A view
+// is a copy: it stays valid and unchanged while the round goes on.
 class PlayerView {
 public:
-    PlayerView(const RoundState& state, int seat) : state_(state), seat_(seat) {}
+    PlayerView(const RoundState& state, int seat)
+        : seat_(seat), hand_(state.player(seat).hand), roundWind_(state.roundWind), dealer_(state.dealer),
+          honba_(state.honba), riichiSticks_(state.riichiSticks), currentSeat_(state.current),
+          wallRemaining_(state.wall.remaining()), doraIndicators_(state.wall.doraIndicators()) {
+        for (int who = 0; who < 4; ++who) {
+            const PlayerState& player = state.player(who);
+            seats_[static_cast<size_t>(who)] = {player.river,  player.hand.melds(), player.hand.concealedCount(),
+                                                player.score,  player.riichi,       player.seatWind};
+        }
+    }
 
     int seat() const { return seat_; }
-    const Hand& hand() const { return getPlayerState(seat_).hand; }
+    const Hand& hand() const { return hand_; }
 
-    const std::vector<RiverTile>& river(int player) const { return getPlayerState(player).river; }
-    const std::vector<Meld>& melds(int player) const { return getPlayerState(player).hand.melds(); }
-    int score(int player) const { return getPlayerState(player).score; }
-    bool riichi(int player) const { return getPlayerState(player).riichi; }
-    Honor seatWind(int player) const { return getPlayerState(player).seatWind; }
+    const std::vector<RiverTile>& river(int who) const { return at(who).river; }
+    const std::vector<Meld>& melds(int who) const { return at(who).melds; }
+    int concealedCount(int who) const { return at(who).concealedCount; }
+    int score(int who) const { return at(who).score; }
+    bool riichi(int who) const { return at(who).riichi; }
+    Honor seatWind(int who) const { return at(who).seatWind; }
 
-    Honor roundWind() const { return state_.roundWind; }
-    int dealer() const { return state_.dealer; }
-    int honba() const { return state_.honba; }
-    int riichiSticks() const { return state_.riichiSticks; }
-    int currentSeat() const { return state_.current; }
-    int wallRemaining() const { return state_.wall.remaining(); }
-    std::vector<Tile> doraIndicators() const { return state_.wall.doraIndicators(); }
+    Honor roundWind() const { return roundWind_; }
+    int dealer() const { return dealer_; }
+    int honba() const { return honba_; }
+    int riichiSticks() const { return riichiSticks_; }
+    int currentSeat() const { return currentSeat_; }
+    int wallRemaining() const { return wallRemaining_; }
+    const std::vector<Tile>& doraIndicators() const { return doraIndicators_; }
 
     // All tiles this seat can see: its own hand, all rivers and melds, and the
     // dora indicators. A tile called away from a river counts once, in its meld.
     TileCounts visibleTiles() const {
-        TileCounts visible = hand().counts();
-        for (Tile t : doraIndicators()) ++visible[t.kind()];
-        for (int player = 0; player < 4; ++player) {
-            for (const RiverTile& discard : river(player)) {
+        TileCounts visible = hand_.counts();
+        for (Tile t : doraIndicators_) ++visible[t.kind()];
+        for (const Seat& seat : seats_) {
+            for (const RiverTile& discard : seat.river) {
                 if (!discard.calledAway) ++visible[discard.tile.kind()];
             }
-            for (const Meld& meld : melds(player)) {
+            for (const Meld& meld : seat.melds) {
                 for (Tile t : meld.tiles()) ++visible[t.kind()];
             }
         }
@@ -47,10 +59,28 @@ public:
     }
 
 private:
-    const PlayerState& getPlayerState(int player) const { return state_.players[static_cast<size_t>(player)]; }
+    // The public information about one seat.
+    struct Seat {
+        std::vector<RiverTile> river;
+        std::vector<Meld> melds;
+        int concealedCount = 0;
+        int score = 0;
+        bool riichi = false;
+        Honor seatWind = Honor::East;
+    };
 
-    const RoundState& state_;
+    const Seat& at(int who) const { return seats_[static_cast<size_t>(who)]; }
+
     int seat_;
+    Hand hand_;
+    std::array<Seat, 4> seats_;
+    Honor roundWind_;
+    int dealer_;
+    int honba_;
+    int riichiSticks_;
+    int currentSeat_;
+    int wallRemaining_;
+    std::vector<Tile> doraIndicators_;
 };
 
 // A seat at the table: a human through the UI, or an AI.

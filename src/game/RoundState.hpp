@@ -12,6 +12,9 @@ namespace mj {
 // Seat of `other` as seen from `seat`: 1 = right, 2 = across, 3 = left.
 constexpr int relativeSeat(int seat, int other) { return (other - seat + 4) % 4; }
 
+// The seat `offset` after `seat` in normal turn order.
+constexpr int seatAdd(int seat, int offset) { return (seat + offset) % 4; }
+
 // Everything about one round (one hand). Plain data: the RoundController
 // changes it, the legal action functions and player views read it.
 struct RoundState {

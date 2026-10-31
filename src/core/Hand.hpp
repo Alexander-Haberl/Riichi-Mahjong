@@ -73,6 +73,7 @@ public:
 
     const std::vector<Tile>& concealed() const { return concealed_; }
     const std::vector<Meld>& melds() const { return melds_; }
+    int concealedCount() const { return static_cast<int>(concealed_.size()); }
     int meldCount() const { return static_cast<int>(melds_.size()); }
     // True if there are no open melds (closed kans keep the hand closed).
     bool isClosed() const;
