@@ -113,7 +113,11 @@ void to_json(json& out, const Win& win) {
            {"fu", win.score.fu},
            {"basicPoints", win.score.basicPoints},
            {"name", win.score.name},
-           {"yaku", win.score.hanSources}};
+           {"yaku", win.score.hanSources},
+           {"points", win.points},
+           {"concealedBlocks", win.score.decomposition.concealedBlocks},
+           {"melds", win.score.decomposition.melds},
+           {"winningTile", win.score.decomposition.winningTile}};
 }
 
 void to_json(json& out, const Action& action) {

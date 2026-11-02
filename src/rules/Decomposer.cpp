@@ -72,7 +72,8 @@ bool isKokushi(const TileCounts& counts) {
     return total == 14 && totalTiles(counts) == 14;
 }
 
-// The wait the winning tile completed if it is part of this concealed block.
+}  // namespace
+
 std::optional<WaitType> waitIn(const Block& block, Tile winTile) {
     switch (block.type) {
         case BlockType::Pair:
@@ -94,8 +95,6 @@ std::optional<WaitType> waitIn(const Block& block, Tile winTile) {
     }
     return std::nullopt;
 }
-
-}  // namespace
 
 std::vector<Reading> readings(const Hand& hand, Tile winTile, bool ron) {
     std::vector<Reading> result;

@@ -314,7 +314,8 @@ std::optional<RoundResult> RoundController::rons(const Claim& claim) const {
     RoundResult result{RoundEnd::Ron, {}, {}};
     for (int seat : winners) {
         const WinContext ctx = ronContext(state_, seat, claim.tile, claim.source);
-        result.wins.push_back({seat, claim.fromSeat, *scorer_.score(ctx)});
+        const ScoreResult score = *scorer_.score(ctx);
+        result.wins.push_back({seat, claim.fromSeat, score, winPoints(score.basicPoints, seat == state_.dealer, false)});
     }
     return result;
 }
@@ -363,7 +364,8 @@ void RoundController::finishTsumo() {
 
     GameEvent event{EventType::Tsumo, seat};
     event.tile = ctx.winTile;
-    event.wins.push_back({seat, seat, *scorer_.score(ctx)});
+    const ScoreResult score = *scorer_.score(ctx);
+    event.wins.push_back({seat, seat, score, winPoints(score.basicPoints, seat == state_.dealer, true)});
     event.revealedHands[static_cast<size_t>(seat)] = state_.player(seat).hand;
     event.uraDoraIndicators = ctx.uraDoraIndicators;
 

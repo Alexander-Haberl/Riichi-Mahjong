@@ -152,5 +152,5 @@ TEST_CASE("The scorer keeps the reading with the most fu") {
     REQUIRE(result.has_value());
     CHECK(result->han == 1);
     CHECK(result->fu == 40);
-    CHECK(result->reading.wait == WaitType::Tanki);
+    CHECK(result->decomposition.concealedBlocks.back() == parseTiles("5m"));  // the tanki on the pair
 }

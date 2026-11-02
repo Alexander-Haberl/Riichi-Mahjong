@@ -26,6 +26,7 @@ struct Win {
     int seat;
     int fromSeat;  // the discarder; equal to seat for tsumo
     ScoreResult score;
+    int points = 0;  // what the winner gains from the hand alone, without honba and riichi sticks
 };
 
 enum class EventType {

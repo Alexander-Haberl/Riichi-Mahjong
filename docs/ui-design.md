@@ -68,7 +68,11 @@ Tiles are Tenhou strings (`"5m"`, `"0p"`, `"7z"`), which can also name the tile 
     meld: Meld,                       // or null
     wins: [{ seat: 1, fromSeat: 2, han: 4, fu: 30, basicPoints: 1920,
              name: "None",            // a ScoreName
-             yaku: [{ name: "Riichi", han: 1 }] }],
+             yaku: [{ name: "Riichi", han: 1 }],
+             points: 7700,            // gained from the hand alone, without honba and riichi sticks
+             concealedBlocks: [["1m", "2m", "3m"], ..., ["4p", "5p"]],  // the last lacks the winning tile
+             melds: [Meld],
+             winningTile: "6p" }],
     revealedHands: [null, { concealed: ["1m", ...], melds: [Meld] }, null, null],  // by seat
     uraDoraIndicators: ["3p"],
     abortReason: "SuufonRenda",       // or null
@@ -100,9 +104,18 @@ Tiles are Tenhou strings (`"5m"`, `"0p"`, `"7z"`), which can also name the tile 
 
 `furiten` is only meaningful for a hand with waits. After a draw or call (`hand.length % 3 == 2`) it only reports a ron passed on, so a marker should keep its value until the discard.
 
+## The page so far
+
+`web/`: `main.js` runs the game, `table.js` draws the board from the steps, `actions.js` offers the human's choices, `results.js` shows the result of a round. The board shows the hands (the human's face up), rivers with sideways riichi tiles, melds at the right end of each seat, and the middle square with winds, scores, placements, riichi sticks, round, honba, wall and dora. Discards are clicks on the hand; calls are buttons above the hand, and a call with several options opens a chooser in front of the board. Tile images are in `web/tiles/pngs/`, named by Tenhou string, `tileBack.png` for the back.
+
 ## Still to do
 
-1. The UI: table layout, tile images, animations, hand selection, call and riichi prompts, round and game result screens. Tile images will be sorted out by the user, ask about them if they are needed.
+Done: pacing (`play()` in `main.js` pauses before each step, clicks are ignored meanwhile), the latest discard highlighted, calls announced at the caller's seat, the winning or tenpai hands revealed on the board, and the round result screen (`results.js`), which waits for a click.
+
+Next, in this order:
+
+1. **Game end screen:** the final scores and ranks.
+2. **Options left of the board:** automatic discard (in riichi, when discarding the drawn tile is the only action) and auto-pass on chi and pon (ron always asks).
 
 The rules are `webRules()` in `src/web/WebGame.hpp`, the standard rules for now. The seed comes from the browser and is shown, so a game can be replayed.
 

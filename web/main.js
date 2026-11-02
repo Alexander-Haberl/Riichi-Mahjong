@@ -1,22 +1,27 @@
-// A plain test page: it plays through the engine and shows everything as text.
+// Runs the game: passes the engine's steps to the table and the human's
+// choices back to the engine.
 import createEngine from "./engine.js";
+import { clearActions, showActions } from "./actions.js";
+import { hideResult, showRoundResult } from "./results.js";
+import { loadTiles, showStep } from "./table.js";
 
 const page = {
     status: document.getElementById("status"),
     form: document.getElementById("new-game"),
     seed: document.getElementById("seed"),
     table: document.getElementById("table"),
-    round: document.getElementById("round"),
-    scores: document.getElementById("scores"),
-    hand: document.getElementById("hand"),
-    furiten: document.getElementById("furiten"),
-    actions: document.getElementById("actions"),
     log: document.getElementById("log"),
 };
 
-const engine = await createEngine();
+// The engine and all tile images load together, before a game can start.
+let engine;
+try {
+    [engine] = await Promise.all([createEngine(), loadTiles()]);
+} catch (error) {
+    page.status.textContent = `Loading failed: ${error.message}`;
+    throw error;
+}
 let game = null;
-let furiten = false;
 
 function randomSeed() {
     return crypto.getRandomValues(new Uint32Array(1))[0];
@@ -42,52 +47,82 @@ function describe(event) {
     return parts.join(" ");
 }
 
-function showTable(view) {
-    const wind = view.roundWind;
-    page.round.textContent = `${wind} round, dealer seat ${view.dealer}, honba ${view.honba}, `
-        + `sticks ${view.riichiSticks}, wall ${view.wallRemaining}, dora indicators ${view.doraIndicators.join(" ")}`;
-    page.scores.textContent = view.seats
-        .map((seat, index) => `${index === view.seat ? "you" : `seat ${index}`} (${seat.seatWind}): ${seat.score}`)
-        .join(" | ");
-    page.hand.textContent = view.hand.join(" ");
-    // A hand that has just drawn or called has no waits: keep the value until its discard.
-    if (view.hand.length % 3 === 1) furiten = view.furiten;
-    page.furiten.hidden = !furiten;
-}
+// Pause in milliseconds before a step is shown, so the AIs' turns can be
+// followed. The human's own actions show at once.
+const PAUSE = {
+    Draw: 350,            // between one turn and the next
+    Discard: 450,         // an AI thinking
+    call: 450,            // Chi, Pon, Kan
+    DoraRevealed: 300,
+    roundEnd: 400,        // Tsumo, Ron, Abort, ExhaustiveDraw
+    RoundEnd: 3000,       // time to look at the revealed hands before the result screen
+};
 
-function describeAction(action) {
-    return [action.type, action.tile, ...action.handTiles].filter(Boolean).join(" ");
-}
+const ROUND_ENDINGS = ["Tsumo", "Ron", "Abort", "ExhaustiveDraw"];
 
-function showActions(decision) {
-    page.actions.replaceChildren(...decision.legal.map((action, index) => {
-        const button = document.createElement("button");
-        button.textContent = describeAction(action);
-        button.addEventListener("click", () => {
-            game.submit(index);
-            update();
-        });
-        return button;
-    }));
-}
-
-// Shows everything that happened, then the next decision or the result.
-function update() {
-    for (const step of JSON.parse(game.takeSteps())) {
-        log(describe(step.event));
-        showTable(step.view);
+function pauseBefore(event, humanSeat) {
+    const ownAction = event.seat === humanSeat;
+    switch (event.type) {
+        case "Draw": return PAUSE.Draw;
+        case "Discard": return ownAction ? 0 : PAUSE.Discard;
+        case "Chi":
+        case "Pon":
+        case "Kan": return ownAction ? 0 : PAUSE.call;
+        case "DoraRevealed": return PAUSE.DoraRevealed;
+        case "Tsumo":
+        case "Ron":
+        case "Abort":
+        case "ExhaustiveDraw": return PAUSE.roundEnd;
+        case "RoundEnd": return PAUSE.RoundEnd;
+        default: return 0;
     }
+}
+
+function sleep(milliseconds) {
+    return new Promise((resolve) => setTimeout(resolve, milliseconds));
+}
+
+// True while steps are being played; the human's clicks are ignored then.
+let playing = false;
+
+function choose(actionIndex) {
+    if (playing) return;
+    game.submit(actionIndex);
+    play();
+}
+
+// Plays the steps since the last call one by one, then offers the next
+// decision or shows the result. A round's result screen waits for a click.
+async function play() {
+    const current = game;
+    playing = true;
+    clearActions();
+    let roundEnding = null;  // how the round ended, for the result screen at RoundEnd
+    for (const step of JSON.parse(game.takeSteps())) {
+        const pause = pauseBefore(step.event, step.view.seat);
+        if (pause > 0) await sleep(pause);
+        if (game !== current) return;  // a new game was started meanwhile
+        log(describe(step.event));
+        showStep(step);
+
+        if (ROUND_ENDINGS.includes(step.event.type)) roundEnding = step.event;
+        if (step.event.type === "RoundEnd" && roundEnding) {
+            await showRoundResult(roundEnding, step.view);
+            if (game !== current) return;
+        }
+    }
+    playing = false;
 
     const decision = JSON.parse(game.pending());
     if (decision) {
-        showActions(decision);
+        showActions(decision, choose);
     } else {
-        page.actions.replaceChildren();
         log(`Result: ${game.result()}`);
     }
 }
 
 function newGame(seed) {
+    hideResult();
     game?.delete();
     game = new engine.WebGame(seed);
     page.seed.value = seed;
@@ -95,7 +130,7 @@ function newGame(seed) {
     page.log.textContent = "";
     page.table.hidden = false;
     game.start();
-    update();
+    play();
 }
 
 page.form.addEventListener("submit", (event) => {
@@ -103,5 +138,5 @@ page.form.addEventListener("submit", (event) => {
     newGame(page.seed.value === "" ? randomSeed() : Number(page.seed.value));
 });
 
-page.status.textContent = "Engine ready.";
+page.status.textContent = "Ready.";
 page.form.querySelector("button").disabled = false;

@@ -188,3 +188,20 @@ TEST_CASE("13 or more han from yaku and dora are a kazoe yakuman") {
         CHECK(result->basicPoints == 6000);
     }
 }
+
+TEST_CASE("Win points: ron 4 or 6 times the basic points, tsumo split, rounded up per payment") {
+    SECTION("mangan") {
+        CHECK(winPoints(2000, false, false) == 8000);
+        CHECK(winPoints(2000, true, false) == 12000);
+        CHECK(winPoints(2000, false, true) == 8000);   // 4000 + 2 * 2000
+        CHECK(winPoints(2000, true, true) == 12000);   // 3 * 4000
+    }
+    SECTION("each payment is rounded on its own") {
+        // 3 han 30 fu: 960 basic points
+        CHECK(winPoints(960, false, false) == 3900);   // 3840
+        CHECK(winPoints(960, true, false) == 5800);    // 5760
+        CHECK(winPoints(960, false, true) == 4000);    // 2000 + 2 * 1000
+        CHECK(winPoints(960, true, true) == 6000);     // 3 * 2000
+    }
+}
+

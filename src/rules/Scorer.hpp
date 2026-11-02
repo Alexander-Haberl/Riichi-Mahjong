@@ -27,8 +27,22 @@ struct HanSource {
     int han;
 };
 
+// Tiles from the hand that form one block of a winning hand.
+using TileBlock = std::vector<Tile>;
+
+// A winning hand split into blocks, with the hand's actual tiles (red fives
+// included). The last concealed block is the one the winning tile completed;
+// it does not hold the winning tile itself, so every tile appears once. The
+// other concealed blocks are in tile order. Kokushi is one block of its tiles
+// besides the winning tile. The melds are those of the hand, closed kans included.
+struct WinDecomposition {
+    std::vector<TileBlock> concealedBlocks;
+    std::vector<Meld> melds;
+    Tile winningTile;
+};
+
 struct ScoreResult {
-    Reading reading;  // the reading the score is based on
+    WinDecomposition decomposition;  // of the reading the score is based on
     // The yaku and dora, or only the yakuman if the hand has any.
     std::vector<HanSource> hanSources{};
     // Total han; 13 for a kazoe yakuman, the sum of the yakuman for yakuman.
@@ -67,6 +81,15 @@ struct BasicPoints {
 // Basic points of a hand: fu * 2^(2 + han) below mangan, otherwise the limit.
 // For yakuman, `han` is the sum of the yakuman (13 each, 26 for a double).
 BasicPoints basicPoints(int han, int fu, bool yakuman, const RuleSet& rules);
+
+// Every payment is rounded up to the next 100 points.
+int roundUpToHundred(int points);
+
+// What the winner gains from a hand, without honba and riichi sticks. A ron is
+// paid 4 times the basic points (6 for the dealer). A tsumo is paid twice by the
+// dealer and once by everyone else, or twice by everyone for the dealer. Each
+// payment is rounded up to 100.
+int winPoints(int basicPoints, bool dealer, bool tsumo);
 
 // Scores a win: tries every reading of the hand and keeps the one with the
 // most basic points (then han, then fu). Dora only count when the hand has a

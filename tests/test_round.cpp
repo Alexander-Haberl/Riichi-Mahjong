@@ -103,6 +103,7 @@ TEST_CASE("Ron on a discard ends the round") {
     CHECK(result.wins[0].seat == 1);
     CHECK(result.wins[0].fromSeat == 0);
     CHECK(result.wins[0].score.han == 1);
+    CHECK(result.wins[0].points == winPoints(result.wins[0].score.basicPoints, false, false));
     CHECK(round.state().players[0].river.size() == 1);
 }
 
@@ -120,6 +121,7 @@ TEST_CASE("Tsumo on the drawn tile ends the round") {
     REQUIRE(result.wins.size() == 1);
     CHECK(result.wins[0].seat == 1);
     CHECK(result.wins[0].fromSeat == 1);
+    CHECK(result.wins[0].points == winPoints(result.wins[0].score.basicPoints, false, true));
     CHECK(round.state().players[1].river.empty());
 }
 

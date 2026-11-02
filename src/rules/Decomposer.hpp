@@ -46,6 +46,10 @@ struct Reading {
     bool operator==(const Reading&) const = default;
 };
 
+// The wait the winning tile completed if it is part of this concealed block;
+// empty if the block does not hold it. E.g. 3m makes 1-2-3 a penchan, 3-4-5 a ryanmen.
+std::optional<WaitType> waitIn(const Block& block, Tile winTile);
+
 // All readings of a complete hand, one for each block the winning tile could
 // have completed. With `ron`, a triplet completed by the winning tile is open.
 // Empty if the hand does not form a winning shape.

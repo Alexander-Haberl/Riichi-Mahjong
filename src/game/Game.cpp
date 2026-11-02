@@ -6,14 +6,6 @@
 
 namespace mj {
 
-namespace {
-
-int roundUpToHundred(int points) {
-    return (points + 99) / 100 * 100;
-}
-
-}  // namespace
-
 std::array<int, 4> payments(const RoundResult& result, int dealer, int honba, int riichiSticks) {
     std::array<int, 4> change{};
     auto pay = [&change](int from, int to, int points) {

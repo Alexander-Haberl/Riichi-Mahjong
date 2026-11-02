@@ -1,31 +1,495 @@
 :root {
     color-scheme: light dark;
+
+    /* The board is a square as large as the window allows, leaving room for
+       the header and the log. The board stays centred, so it leaves the log's
+       width free on both sides. All sizes on it follow from this. */
+    --log-width: 22rem;
+    --board: min(calc(100vw - 2 * var(--log-width) - 3rem), calc(100vh - 4.5rem));
+    --inner: calc(var(--board) * 0.32);   /* the square in the middle */
+    --tile: calc(var(--board) / 19);      /* tiles of the human's hand */
+    --small-tile: calc(var(--board) / 28);
+    /* Small enough that three rows leave room for a row of buttons above the hand. */
+    --river-tile: calc(var(--board) / 23);
+    --felt: #1f5d3a;
 }
 
 body {
-    max-width: 60rem;
-    margin: 0 auto;
-    padding: 1rem;
+    margin: 0;
+    padding: 0.5rem;
     font-family: system-ui, sans-serif;
 }
 
-.tiles {
-    font-family: monospace;
-    font-size: 1.2rem;
-}
-
-#actions {
+header {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.25rem;
+    align-items: baseline;
+    gap: 0 1rem;
 }
 
-#actions button {
-    font-family: monospace;
+header p {
+    margin: 0.25rem 0;
+}
+
+/* --- Board and log side by side -------------------------------------------- */
+
+/* Three columns: an empty one, the board, the log. The outer two are equally
+   wide, so the board is in the middle of the screen. */
+#table:not([hidden]) {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: start;
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+/* As wide as the board, so that long rows of action buttons wrap instead of
+   widening the column and pushing the board off centre. */
+#play {
+    grid-column: 2;
+    width: var(--board);
 }
 
 #log {
-    max-height: 24rem;
+    grid-column: 3;
+    justify-self: start;
+}
+
+/* On a narrow screen the log goes below the board. */
+@media (max-width: 60rem) {
+    :root {
+        --board: min(96vw, calc(100vh - 4.5rem));
+    }
+
+    #table:not([hidden]) {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+/* --- The board ------------------------------------------------------------- */
+
+#board {
+    position: relative;
+    width: var(--board);
+    aspect-ratio: 1;
+    margin-bottom: 0.5rem;
+    overflow: hidden;
+    border-radius: 0.5%;
+    background: var(--felt);
+    color: white;
+    font-size: calc(var(--board) / 50);
+}
+
+/* A seat covers the whole board and is turned to its side. The layers lie on
+   top of each other, so only their visible parts take clicks. */
+.seat {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+}
+
+.seat > * {
+    pointer-events: auto;
+}
+
+.seat[data-position="1"] { transform: rotate(-90deg); }
+.seat[data-position="2"] { transform: rotate(180deg); }
+.seat[data-position="3"] { transform: rotate(90deg); }
+
+.tile {
+    display: block;
+    width: var(--small-tile);
+    aspect-ratio: 2 / 3;
+}
+
+/* Tile sizes of the hand and the melds: the human's are larger. */
+.seat {
+    --hand-tile: var(--small-tile);
+    --meld-tile: calc(var(--board) / 32);
+}
+
+.seat[data-position="0"] {
+    --hand-tile: var(--tile);
+    --meld-tile: calc(var(--board) / 26);
+}
+
+.hand .tile {
+    width: var(--hand-tile);
+}
+
+/* --- Hands and melds ------------------------------------------------------- */
+
+/* The hand starts where a full hand would start if centred, so it does not
+   move with calls. The melds start at the right edge and grow towards the middle. */
+.hand-row {
+    --drawn-gap: 0.6em;
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 1%;
+    height: calc(var(--hand-tile) * 1.5);
+}
+
+.hand {
+    position: absolute;
+    bottom: 0;
+    left: calc(50% - (14 * var(--hand-tile) + var(--drawn-gap)) / 2);
+    display: flex;
+}
+
+.hand .drawn {
+    margin-left: var(--drawn-gap);
+}
+
+/* Above the left end of the hand. */
+.furiten {
+    position: absolute;
+    bottom: calc(100% + 0.2em);
+    left: calc(50% - (14 * var(--hand-tile) + var(--drawn-gap)) / 2);
+}
+
+/* The first meld lies at the right end, later ones to its left. */
+.melds {
+    --sideways-tile: var(--meld-tile);
+    position: absolute;
+    bottom: 0;
+    right: 1%;
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: flex-end;
+    gap: 0.4em;
+}
+
+.meld {
+    display: flex;
+    align-items: flex-end;
+}
+
+.meld > .tile {
+    width: var(--meld-tile);
+}
+
+/* Tiles the human can discard rise a little under the mouse. */
+.hand .discardable {
+    cursor: pointer;
+    transition: transform 0.1s;
+}
+
+.hand .discardable:hover {
+    transform: translateY(-12%);
+}
+
+.furiten {
+    color: #ff8a80;
+}
+
+/* --- Rivers ------------------------------------------------------------------ */
+
+/* Starts at the seat's edge of the middle square and grows towards the hand.
+   It is six tiles wide and centred on that edge. Rows start at the left; a
+   row with a riichi tile and a long last row reach past the right edge. */
+.river {
+    position: absolute;
+    left: 50%;
+    top: calc(50% + var(--inner) / 2 + 0.3%);
+    width: calc(var(--river-tile) * 6);
+    transform: translateX(-50%);
+}
+
+.river-row {
+    display: flex;
+    align-items: flex-end;
+}
+
+/* Keep every tile at its size: by default a flex row squeezes its items to
+   fit its width, which made a row with a riichi tile overlap. */
+.river-row > * {
+    flex-shrink: 0;
+}
+
+.river {
+    --sideways-tile: var(--river-tile);
+}
+
+.river .tile {
+    width: var(--river-tile);
+}
+
+/* A tile lying sideways (a riichi tile, a claimed tile): the slot is as wide
+   as the tile is high, the tile turned inside it. --sideways-tile is the width
+   of the tile, set by the place it is used in. */
+.sideways {
+    position: relative;
+    flex-shrink: 0;
+    width: calc(var(--sideways-tile) * 1.5);
+    height: var(--sideways-tile);
+}
+
+.sideways .tile {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: var(--sideways-tile);
+    transform: translate(-50%, -50%) rotate(90deg);
+}
+
+/* Two sideways tiles on top of each other (a kan added to a pon). */
+.sideways.stacked {
+    height: calc(var(--sideways-tile) * 2);
+}
+
+.sideways.stacked .tile:first-child {
+    top: 25%;
+}
+
+.sideways.stacked .tile:last-child {
+    top: 75%;
+}
+
+/* The latest discard of the round. */
+.river .tile.latest {
+    outline: 0.15em solid #ffd54f;
+    outline-offset: -0.05em;
+}
+
+/* --- Calls ------------------------------------------------------------------- */
+
+/* A call announced at the caller's seat, just above the hand. */
+.seat > .announce {
+    position: absolute;
+    left: 50%;
+    bottom: calc(1% + var(--hand-tile) * 1.5 + 0.6em);
+    transform: translateX(-50%);
+    padding: 0.1em 0.8em;
+    border-radius: 0.4em;
+    background: rgb(0 0 0 / 0.6);
+    color: #ffd54f;
+    font-size: 1.6em;
+    font-weight: bold;
+    pointer-events: none;
+}
+
+/* The call buttons, between the river and the hand. */
+#calls {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: calc(1% + var(--tile) * 1.5 + 0.7em);
+    display: flex;
+    justify-content: center;
+    gap: 0.5em;
+}
+
+#calls button {
+    font-size: 1em;
+    padding: 0.2em 1em;
+}
+
+/* --- Overlays: the call chooser and the round result ----------------------- */
+
+/* A panel in front of the whole board. The [hidden] attribute only works as
+   long as no rule sets display, so the rule leaves hidden alone. */
+.overlay:not([hidden]) {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgb(0 0 0 / 0.5);
+}
+
+.overlay .panel {
+    --meld-tile: var(--tile);
+    --sideways-tile: var(--tile);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.8em;
+    max-width: 80%;
+    max-height: 90%;
+    overflow-y: auto;
+    padding: 1em 1.5em;
+    border-radius: 0.5em;
+    background: #2e3b33;
+}
+
+.overlay h2 {
+    margin: 0;
+    font-size: 1.2em;
+}
+
+.overlay .panel > button {
+    font-size: 1em;
+    padding: 0.2em 1em;
+}
+
+#chooser .options {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.6em;
+}
+
+#chooser .option {
+    display: flex;
+    align-items: flex-end;
+    padding: 0.3em;
+    cursor: pointer;
+}
+
+#chooser .option .tile {
+    width: var(--tile);
+}
+
+/* The result of a round: one section per win. */
+#result .content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1.2em;
+}
+
+#result section {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6em;
+}
+
+/* The complete blocks, the melds, the block the winning tile completed, and
+   the winning tile a little apart. */
+.result-hand {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    justify-content: center;
+    gap: 0.4em;
+}
+
+.result-hand .block {
+    display: flex;
+}
+
+.result-hand .tile {
+    width: var(--tile);
+}
+
+.result-hand .winning {
+    margin-left: 0.5em;
+}
+
+#result table {
+    border-collapse: collapse;
+}
+
+#result td {
+    padding: 0.1em 0.8em;
+}
+
+#result td:last-child {
+    text-align: right;
+}
+
+#result .total {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+#result .points {
+    font-size: 1.6em;
+    font-weight: bold;
+    color: #ffd54f;
+}
+
+/* --- The square in the middle -------------------------------------------- */
+
+#center {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: var(--inner);
+    aspect-ratio: 1;
+    transform: translate(-50%, -50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.3em;
+    border-radius: 4%;
+    background: rgb(0 0 0 / 0.35);
+}
+
+#round-wind {
+    font-size: 1.6em;
+    font-weight: bold;
+}
+
+#counters,
+#wall {
+    font-size: 0.8em;
+}
+
+#dora {
+    display: flex;
+    gap: 2px;
+}
+
+#dora .tile {
+    width: calc(var(--board) / 40);
+}
+
+/* The info of a seat lies along its edge of the middle square. */
+.info {
+    position: absolute;
+    left: 50%;
+    top: calc(50% + var(--inner) / 2);
+    width: calc(var(--inner) * 0.7);
+    transform: translate(-50%, -100%);
+    display: grid;
+    grid-template-columns: auto 1fr auto;
+    align-items: center;
+    gap: 0 0.5em;
+    padding: 0.2em 0.4em;
+    box-sizing: border-box;
+}
+
+.info .stick {
+    grid-column: 1 / -1;
+    justify-self: center;
+    width: 60%;
+    height: 0.35em;
+    border-radius: 0.2em;
+    background: radial-gradient(circle, #d32f2f 0.12em, white 0.14em);
+}
+
+.info .wind {
+    font-size: 1.3em;
+    font-weight: bold;
+}
+
+.info .score {
+    text-align: center;
+}
+
+.info .rank {
+    font-size: 0.8em;
+}
+
+.info.current .wind {
+    color: #ffd54f;
+}
+
+/* --- The log ------------------------------------------------------------------- */
+
+#log {
+    box-sizing: border-box;
+    width: var(--log-width);
+    max-width: 96vw;
+    height: var(--board);
+    margin: 0;
     overflow-y: auto;
     padding: 0.5rem;
     border: 1px solid gray;

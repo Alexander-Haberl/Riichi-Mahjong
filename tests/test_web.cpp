@@ -80,16 +80,19 @@ TEST_CASE("Web JSON: a closed kan has no called tile") {
 }
 
 TEST_CASE("Web JSON: wins and hands at the end of a round") {
-    ScoreResult score{Reading{HandForm::Regular, {}}};
+    ScoreResult score;
     score.hanSources = {{"Riichi", 1}, {"Dora", 2}};
     score.han = 3;
     score.fu = 40;
     score.basicPoints = 1280;
     score.name = ScoreName::None;
+    score.decomposition = {{parseTiles("123m"), parseTiles("1z")},
+                           {Meld{MeldType::Pon, parseTiles("99p"), tile("9p"), 2}},
+                           tile("1z")};
 
     GameEvent ron{EventType::Ron, 3};
     ron.tile = tile("0s");
-    ron.wins.push_back({1, 3, score});
+    ron.wins.push_back({1, 3, score, 5200});
     ron.revealedHands[1] = Hand(parseTiles("11z"));
     ron.uraDoraIndicators = parseTiles("4p");
 
@@ -102,7 +105,15 @@ TEST_CASE("Web JSON: wins and hands at the end of a round") {
                                    {"fu", 40},
                                    {"basicPoints", 1280},
                                    {"name", "None"},
-                                   {"yaku", {{{"name", "Riichi"}, {"han", 1}}, {{"name", "Dora"}, {"han", 2}}}}});
+                                   {"yaku", {{{"name", "Riichi"}, {"han", 1}}, {{"name", "Dora"}, {"han", 2}}}},
+                                   {"points", 5200},
+                                   {"concealedBlocks", {{"1m", "2m", "3m"}, {"1z"}}},
+                                   {"melds", {{{"type", "Pon"},
+                                               {"handTiles", {"9p", "9p"}},
+                                               {"calledTile", "9p"},
+                                               {"fromSeat", 2},
+                                               {"kanFromPon", false}}}},
+                                   {"winningTile", "1z"}});
     CHECK(event["revealedHands"][0].is_null());
     CHECK(event["revealedHands"][1]["concealed"] == json{"1z", "1z"});
     CHECK(event["uraDoraIndicators"] == json{"4p"});

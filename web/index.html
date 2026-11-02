@@ -7,23 +7,72 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <h1>Riichi Mahjong</h1>
-
-    <p id="status">Loading the engine...</p>
-
-    <form id="new-game">
-        <label>Seed <input id="seed" type="number" min="0" max="4294967295" placeholder="random"></label>
-        <button type="submit" disabled>New game</button>
-    </form>
+    <header>
+        <form id="new-game">
+            <label>Seed <input id="seed" type="number" min="0" max="4294967295" placeholder="random"></label>
+            <button type="submit" disabled>New game</button>
+        </form>        <p id="status">Loading the engine...</p>
+    </header>
 
     <section id="table" hidden>
-        <p id="round"></p>
-        <p id="scores"></p>
-        <p>Your hand: <span id="hand" class="tiles"></span> <strong id="furiten" hidden>Furiten</strong></p>
-        <div id="actions"></div>
-    </section>
+        <div id="play">
+            <!-- One layer per seat, by position: 0 is the human at the bottom, then
+                 1 right, 2 top, 3 left. Each layer is laid out as if it were at the
+                 bottom, then rotated to its side by the CSS. -->
+            <div id="board">
+                <div id="center">
+                    <div id="round-wind"></div>
+                    <div id="counters"></div>
+                    <div id="wall"></div>
+                    <div id="dora"></div>
+                </div>
+                <div class="seat" data-position="0">
+                    <div class="info"><span class="stick" hidden></span><span class="wind"></span><span class="score"></span><span class="rank"></span></div>
+                    <div class="river"></div>
+                    <div class="announce" hidden></div>
+                    <div id="calls"></div>
+                    <div class="hand-row"><div class="hand"></div><div class="melds"></div><strong class="furiten" hidden>Furiten</strong></div>
+                </div>
+                <div class="seat" data-position="1">
+                    <div class="info"><span class="stick" hidden></span><span class="wind"></span><span class="score"></span><span class="rank"></span></div>
+                    <div class="river"></div>
+                    <div class="announce" hidden></div>
+                    <div class="hand-row"><div class="hand"></div><div class="melds"></div></div>
+                </div>
+                <div class="seat" data-position="2">
+                    <div class="info"><span class="stick" hidden></span><span class="wind"></span><span class="score"></span><span class="rank"></span></div>
+                    <div class="river"></div>
+                    <div class="announce" hidden></div>
+                    <div class="hand-row"><div class="hand"></div><div class="melds"></div></div>
+                </div>
+                <div class="seat" data-position="3">
+                    <div class="info"><span class="stick" hidden></span><span class="wind"></span><span class="score"></span><span class="rank"></span></div>
+                    <div class="river"></div>
+                    <div class="announce" hidden></div>
+                    <div class="hand-row"><div class="hand"></div><div class="melds"></div></div>
+                </div>
 
-    <pre id="log"></pre>
+                <!-- The options of a call, in front of the board. -->
+                <div id="chooser" class="overlay" hidden>
+                    <div class="panel">
+                        <h2></h2>
+                        <div class="options"></div>
+                        <button class="back">Back</button>
+                    </div>
+                </div>
+
+                <!-- The result of a round, in front of the board. -->
+                <div id="result" class="overlay" hidden>
+                    <div class="panel">
+                        <div class="content"></div>
+                        <button class="continue">Continue</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <pre id="log"></pre>
+    </section>
 
     <script type="module" src="main.js"></script>
 </body>
