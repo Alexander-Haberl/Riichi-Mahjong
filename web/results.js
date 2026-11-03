@@ -1,6 +1,6 @@
 // The result screen after a round, in front of the board: for each win the
 // hand, the yaku and dora, han and fu, and the points; otherwise the kind of draw.
-import { meldElement, tileImage } from "./table.js";
+import { meldElement, placements, tileImage } from "./table.js";
 
 const SCORE_NAMES = {
     None: "",
@@ -21,6 +21,11 @@ const ABORT_REASONS = {
 };
 
 const YAKUMAN_HAN = 13;
+const MAX_DORA_INDICATORS = 5;
+const RANK_NAMES = ["1st", "2nd", "3rd", "4th"];
+// The players' names: the human, and the AI every other seat has.
+const HUMAN_NAME = "You";
+const AI_NAME = "ShantenAI";
 
 const result = {
     element: document.getElementById("result"),
@@ -34,8 +39,31 @@ result.continue.addEventListener("click", hideResult);
 // Shows how the round ended: `endEvent` is its Tsumo, Ron, Abort or
 // ExhaustiveDraw, `view` the table afterwards. Resolves when the screen is closed.
 export function showRoundResult(endEvent, view) {
+    return open(sections(endEvent, view), "Continue");
+}
+
+// Shows the final placements from the view at the game end: placement, name
+// and score of each seat. Resolves when the screen is closed.
+export function showGameResult(view) {
+    const ranks = placements(view.seats);
+    const order = [0, 1, 2, 3].sort((a, b) => ranks[a] - ranks[b]);
+
+    const table = document.createElement("table");
+    table.className = "standings";
+    for (const seat of order) {
+        const row = table.insertRow();
+        if (seat === view.seat) row.className = "own";
+        row.insertCell().textContent = RANK_NAMES[ranks[seat]];
+        row.insertCell().textContent = seat === view.seat ? HUMAN_NAME : AI_NAME;
+        row.insertCell().textContent = view.seats[seat].score;
+    }
+    return open([section(heading("Final scores"), table)], "Close");
+}
+
+function open(children, buttonText) {
     hideResult();
-    result.content.replaceChildren(...sections(endEvent, view));
+    result.content.replaceChildren(...children);
+    result.continue.textContent = buttonText;
     result.element.hidden = false;
     return new Promise((resolve) => { closed = resolve; });
 }
@@ -77,7 +105,9 @@ function winSection(win, event, view) {
         row.insertCell().textContent = hanText(source.han);
     }
 
-    return section(heading(title), handElement(win), yaku,
+    // Ura dora only count for a winner in riichi.
+    const ura = view.seats[win.seat].riichi ? event.uraDoraIndicators : null;
+    return section(heading(title), handElement(win), indicatorsElement(view.doraIndicators, ura), yaku,
                    text(totalText(win), "total"), text(`${win.points} points`, "points"));
 }
 
@@ -100,6 +130,24 @@ function handElement(win) {
     hand.className = "result-hand";
     hand.append(...complete, ...melds, incomplete, winning);
     return hand;
+}
+
+// The dora indicators, and the ura dora indicators when they count: each a
+// row of five tiles, the indicators face up and the rest face down, with a
+// label on the left.
+function indicatorsElement(dora, ura) {
+    const element = document.createElement("div");
+    element.className = "indicators";
+    const row = (label, indicators) => {
+        const tiles = document.createElement("div");
+        tiles.className = "block";
+        const hidden = Array(MAX_DORA_INDICATORS - indicators.length).fill(null);
+        tiles.append(...[...indicators, ...hidden].map(tileImage));
+        element.append(text(label, "label"), tiles);
+    };
+    row("Dora", dora);
+    if (ura) row("Ura dora", ura);
+    return element;
 }
 
 function hanText(han) {

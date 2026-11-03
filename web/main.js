@@ -2,7 +2,7 @@
 // choices back to the engine.
 import createEngine from "./engine.js";
 import { clearActions, showActions } from "./actions.js";
-import { hideResult, showRoundResult } from "./results.js";
+import { hideResult, showGameResult, showRoundResult } from "./results.js";
 import { loadTiles, showStep } from "./table.js";
 
 const page = {
@@ -110,6 +110,7 @@ async function play() {
             await showRoundResult(roundEnding, step.view);
             if (game !== current) return;
         }
+        if (step.event.type === "GameEnd") showGameResult(step.view);
     }
     playing = false;
 

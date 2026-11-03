@@ -381,6 +381,26 @@ header p {
     margin-left: 0.5em;
 }
 
+/* Dora and ura dora indicators: a label column and a column of tile rows. */
+#result .indicators {
+    display: grid;
+    grid-template-columns: auto auto;
+    align-items: center;
+    gap: 0.3em 0.8em;
+}
+
+#result .indicators .label {
+    text-align: right;
+}
+
+#result .indicators .block {
+    display: flex;
+}
+
+#result .indicators .tile {
+    width: var(--small-tile);
+}
+
 #result table {
     border-collapse: collapse;
 }
@@ -395,6 +415,19 @@ header p {
 
 #result .total {
     font-size: 1.2em;
+    font-weight: bold;
+}
+
+#result .standings {
+    font-size: 1.3em;
+}
+
+#result .standings td {
+    padding: 0.2em 1em;
+}
+
+#result .standings .own {
+    color: #ffd54f;
     font-weight: bold;
 }
 

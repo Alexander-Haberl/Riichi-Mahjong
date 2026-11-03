@@ -308,7 +308,7 @@ export function meldElement(meld, owner) {
 
 // Placement by score. A tie goes to the seat closer to the first dealer
 // (seat 0), as in the engine's final result.
-function placements(seats) {
+export function placements(seats) {
     const order = [0, 1, 2, 3].sort((a, b) => seats[b].score - seats[a].score || a - b);
     const ranks = [];
     order.forEach((seat, rank) => { ranks[seat] = rank; });

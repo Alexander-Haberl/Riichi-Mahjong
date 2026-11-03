@@ -110,13 +110,12 @@ Tiles are Tenhou strings (`"5m"`, `"0p"`, `"7z"`), which can also name the tile 
 
 ## Still to do
 
-Done: pacing (`play()` in `main.js` pauses before each step, clicks are ignored meanwhile), the latest discard highlighted, calls announced at the caller's seat, the winning or tenpai hands revealed on the board, and the round result screen (`results.js`), which waits for a click.
+Done: pacing (`play()` in `main.js` pauses before each step, clicks are ignored meanwhile), the latest discard highlighted, calls announced at the caller's seat, the winning or tenpai hands revealed on the board, the round result screen (`results.js`), which waits for a click, and the final scores at the game end.
 
 Next, in this order:
 
-1. **Game end screen:** the final scores and ranks.
-2. **Options left of the board:** automatic discard (in riichi, when discarding the drawn tile is the only action) and auto-pass on chi and pon (ron always asks).
+1. **Options left of the board:** automatic discard (in riichi, when discarding the drawn tile is the only action) and auto-pass on chi and pon (ron always asks).
 
 The rules are `webRules()` in `src/web/WebGame.hpp`, the standard rules for now. The seed comes from the browser and is shown, so a game can be replayed.
 
-The AI is `ShantenPlayer` (`src/players/`), which is temporary and fast enough for the page's main thread. A stronger AI that thinks for seconds would need a Web Worker, because `submit()` would otherwise freeze the page.
+The AI is `ShantenPlayer` (`src/players/`), which is temporary and fast enough for the page's main thread. A stronger AI that thinks for seconds would need a Web Worker, because `submit()` would otherwise freeze the page. Replacing the AI also means changing its name: the final scores screen calls the AIs "ShantenAI", a fixed string (`AI_NAME` in `web/results.js`). Better then: `WebGame` sends each seat's name in the JSON.
