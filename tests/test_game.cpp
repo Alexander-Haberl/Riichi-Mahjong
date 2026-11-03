@@ -353,3 +353,33 @@ TEST_CASE("Submit needs a pending decision") {
 
     CHECK_THROWS_AS(game.submit({ActionType::Pass}), std::logic_error);  // not started
 }
+
+TEST_CASE("A stacked first wall deals the chosen hands, later rounds are random") {
+    std::array<TestPlayer, 4> players;
+    std::array<IPlayer*, 4> seats = pointers(players);
+    seats[0] = nullptr;  // the human, as viewer
+    Game game(seats, alwaysYaku(), 11, 0);
+    const int humanSeat = game.seatOf(0);
+
+    // 13 tiles to each seat from the dealer (seat 0), then the dealer's draw.
+    const std::array<const char*, 4> hands = {"1112345678999m", "1112345678999p", "1112345678999s", "1122334455667z"};
+    std::vector<Tile> start;
+    for (int seat = 0; seat < 4; ++seat) {
+        const std::vector<Tile> hand = parseTiles(hands[static_cast<size_t>(seat)]);
+        start.insert(start.end(), hand.begin(), hand.end());
+    }
+    start.push_back(tile("7z"));
+    game.stackFirstWall(start);
+    game.start();
+
+    const auto steps = game.takeSteps();
+    REQUIRE_FALSE(steps.empty());
+    // The RoundStart step shows the hands right after the deal.
+    REQUIRE(steps.front().event.type == EventType::RoundStart);
+    const PlayerView& view = steps.front().view;
+    CHECK(view.seat() == humanSeat);
+    CHECK(view.hand().counts() == parseCounts(hands[static_cast<size_t>(humanSeat)]));
+
+    CHECK_THROWS_AS(game.stackFirstWall(start), std::logic_error);
+}
+

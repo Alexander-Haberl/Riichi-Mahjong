@@ -1,10 +1,10 @@
 #pragma once
 
 #include <array>
+#include <memory>
 #include <string>
 
 #include "game/Game.hpp"
-#include "players/ShantenPlayer.hpp"
 
 // What the browser sees of the engine. Everything goes out as a JSON string
 // (see Json.hpp) and comes back as an index, so this class needs no Emscripten
@@ -15,7 +15,10 @@ namespace mj {
 // methods are those of Game; docs/ui-design.md has the loop that drives them.
 class WebGame {
 public:
-    explicit WebGame(unsigned seed);
+    // `scenario` is an index into scenarios() for the first round, or -1 for a
+    // normal game. With `callingAis`, the opponents are CallingPlayers instead of
+    // ShantenPlayers. Throws std::out_of_range for an unknown scenario.
+    explicit WebGame(unsigned seed, int scenario = -1, bool callingAis = false);
 
     void start();
 
@@ -33,9 +36,12 @@ public:
     std::string result() const;
 
 private:
-    std::array<ShantenPlayer, 3> ais_;
+    std::array<std::unique_ptr<IPlayer>, 3> ais_;  // created before game_, which refers to them
     Game game_;
 };
+
+// JSON array of the scenario names, in the order of their indices.
+std::string scenarioNames();
 
 // The rules of the browser game: the standard rules for now.
 inline RuleSet webRules() { return {}; }

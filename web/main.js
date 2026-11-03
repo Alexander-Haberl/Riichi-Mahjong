@@ -9,6 +9,8 @@ const page = {
     status: document.getElementById("status"),
     form: document.getElementById("new-game"),
     seed: document.getElementById("seed"),
+    scenario: document.getElementById("scenario"),
+    opponents: document.getElementById("opponents"),
     table: document.getElementById("table"),
     log: document.getElementById("log"),
 };
@@ -125,14 +127,25 @@ async function play() {
 function newGame(seed) {
     hideResult();
     game?.delete();
-    game = new engine.WebGame(seed);
+    const scenario = Number(page.scenario.value);
+    game = new engine.WebGame(seed, scenario, page.opponents.value === "calling");
     page.seed.value = seed;
-    page.status.textContent = `Seed ${seed}`;
+    const setup = scenario < 0 ? "" : ` · ${page.scenario.selectedOptions[0].textContent}`;
+    page.status.textContent = `Seed ${seed}${setup}`;
     page.log.textContent = "";
     page.table.hidden = false;
     game.start();
     play();
 }
+
+// The scenarios from the engine. They are written for opponents that call and
+// discard what they draw, so choosing one switches to those.
+JSON.parse(engine.scenarioNames()).forEach((name, index) => {
+    page.scenario.add(new Option(name, index));
+});
+page.scenario.addEventListener("change", () => {
+    if (Number(page.scenario.value) >= 0) page.opponents.value = "calling";
+});
 
 page.form.addEventListener("submit", (event) => {
     event.preventDefault();

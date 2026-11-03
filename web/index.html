@@ -10,8 +10,17 @@
     <header>
         <form id="new-game">
             <label>Seed <input id="seed" type="number" min="0" max="4294967295" placeholder="random"></label>
+            <!-- Test setups: the first round starts from a chosen situation. -->
+            <label>Setup <select id="scenario"><option value="-1">Normal game</option></select></label>
+            <label>Opponents
+                <select id="opponents">
+                    <option value="shanten">ShantenAI</option>
+                    <option value="calling">CallingAI</option>
+                </select>
+            </label>
             <button type="submit" disabled>New game</button>
-        </form>        <p id="status">Loading the engine...</p>
+        </form>
+        <p id="status">Loading the engine...</p>
     </header>
 
     <section id="table" hidden>

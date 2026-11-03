@@ -42,6 +42,7 @@ add_library(riichi_engine
     src/game/RoundController.cpp
     src/game/Game.cpp
     src/players/ShantenPlayer.cpp
+    src/players/CallingPlayer.cpp
 )
 target_include_directories(riichi_engine PUBLIC src)
 target_compile_options(riichi_engine PRIVATE
@@ -64,6 +65,7 @@ endif()
 add_library(riichi_web
     src/web/Json.cpp
     src/web/WebGame.cpp
+    src/web/Scenarios.cpp
 )
 target_link_libraries(riichi_web PUBLIC riichi_engine nlohmann_json::nlohmann_json)
 target_compile_options(riichi_web PRIVATE

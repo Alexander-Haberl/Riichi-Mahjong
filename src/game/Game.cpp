@@ -64,6 +64,11 @@ Game::Game(std::array<IPlayer*, 4> players, Scorer scorer, unsigned seed, std::o
     scores_.fill(rules().startingPoints);
 }
 
+void Game::stackFirstWall(std::vector<Tile> start) {
+    if (started_) throw std::logic_error("the game has already started");
+    stackedStart_ = std::move(start);
+}
+
 void Game::start() {
     startRound();
     continueGame();
@@ -99,8 +104,12 @@ RoundResult Game::playRound() {
 
 void Game::startRound() {
     if (over_) throw std::logic_error("the game is already over");
+    started_ = true;
 
-    RoundState state(Wall(rng_, rules().redFivesPerSuit), roundWind_, dealer_, scores_, honba_, riichiSticks_);
+    Wall wall = stackedStart_ ? Wall::stacked(*stackedStart_, rng_, rules().redFivesPerSuit)
+                              : Wall(rng_, rules().redFivesPerSuit);
+    stackedStart_.reset();
+    RoundState state(std::move(wall), roundWind_, dealer_, scores_, honba_, riichiSticks_);
     round_.emplace(std::move(state), scorer_, viewerSeat_);
     round_->start();
 }

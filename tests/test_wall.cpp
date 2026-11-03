@@ -3,9 +3,11 @@
 #include <algorithm>
 #include <stdexcept>
 
+#include "TestHelpers.hpp"
 #include "core/Wall.hpp"
 
 using namespace mj;
+using namespace mj::test;
 
 namespace {
 
@@ -91,3 +93,38 @@ TEST_CASE("Kans shrink the live wall and are limited to four") {
 TEST_CASE("Wall needs exactly 136 tiles") {
     CHECK_THROWS_AS(Wall(std::vector<Tile>(10)), std::invalid_argument);
 }
+
+TEST_CASE("Stacked wall: the start tiles come first, then the rest of the set") {
+    std::mt19937 rng(5);
+    const std::vector<Tile> start = parseTiles("1111z0m555m9p");
+    Wall wall = Wall::stacked(start, rng);
+
+    for (Tile expected : start) CHECK(wall.draw() == expected);
+
+    // The live wall and the dead wall still hold each tile of the set once.
+    std::vector<Tile> tiles = start;
+    for (int i = 0; i < Wall::kRinshanTiles; ++i) tiles.push_back(wall.drawRinshan());
+    while (wall.remaining() > 0) tiles.push_back(wall.draw());
+    for (int i = 1; i < Wall::kMaxDoraIndicators; ++i) wall.revealNextDora();
+    for (Tile t : wall.doraIndicators()) tiles.push_back(t);
+    for (Tile t : wall.uraDoraIndicators()) tiles.push_back(t);
+    REQUIRE(tiles.size() == kNumTiles - 4);  // the 4 tiles that refill the dead wall are not reachable
+    TileCounts counts{};
+    int red = 0;
+    for (Tile t : tiles) {
+        ++counts[t.kind()];
+        if (t.isRed()) ++red;
+    }
+    CHECK(*std::max_element(counts.begin(), counts.end()) <= 4);
+    CHECK(counts[tile("1z").kind()] == 4);
+    CHECK(red <= 3);
+}
+
+TEST_CASE("Stacked wall: only tiles the set still has") {
+    std::mt19937 rng(5);
+    CHECK_THROWS_AS(Wall::stacked(parseTiles("11111z"), rng), std::invalid_argument);
+    CHECK_THROWS_AS(Wall::stacked(parseTiles("00m"), rng), std::invalid_argument);
+    CHECK_THROWS_AS(Wall::stacked(parseTiles("0m"), rng, 0), std::invalid_argument);
+    CHECK_NOTHROW(Wall::stacked(parseTiles("0m555m"), rng));
+}
+

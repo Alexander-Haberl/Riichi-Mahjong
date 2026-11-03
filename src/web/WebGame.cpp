@@ -4,7 +4,10 @@
 #include <stdexcept>
 #include <vector>
 
+#include "players/CallingPlayer.hpp"
+#include "players/ShantenPlayer.hpp"
 #include "web/Json.hpp"
+#include "web/Scenarios.hpp"
 
 namespace mj {
 
@@ -12,10 +15,27 @@ namespace {
 
 constexpr int kHumanPlayer = 0;
 
+std::array<std::unique_ptr<IPlayer>, 3> makeAis(bool calling) {
+    std::array<std::unique_ptr<IPlayer>, 3> ais;
+    for (auto& ai : ais) {
+        if (calling) {
+            ai = std::make_unique<CallingPlayer>();
+        } else {
+            ai = std::make_unique<ShantenPlayer>();
+        }
+    }
+    return ais;
+}
+
 }  // namespace
 
-WebGame::WebGame(unsigned seed)
-    : game_({nullptr, &ais_[0], &ais_[1], &ais_[2]}, standardScorer(webRules()), seed, kHumanPlayer) {}
+WebGame::WebGame(unsigned seed, int scenario, bool callingAis)
+    : ais_(makeAis(callingAis)),
+      game_({nullptr, ais_[0].get(), ais_[1].get(), ais_[2].get()}, standardScorer(webRules()), seed, kHumanPlayer) {
+    if (scenario < 0) return;
+    const Scenario& chosen = scenarios().at(static_cast<size_t>(scenario));
+    game_.stackFirstWall(scenarioWallStart(chosen, game_.seatOf(kHumanPlayer)));
+}
 
 void WebGame::start() {
     game_.start();
@@ -43,6 +63,12 @@ void WebGame::submit(int actionIndex) {
 
 std::string WebGame::result() const {
     return toJson(game_.result()).dump();
+}
+
+std::string scenarioNames() {
+    nlohmann::json names = nlohmann::json::array();
+    for (const Scenario& scenario : scenarios()) names.push_back(scenario.name);
+    return names.dump();
 }
 
 }  // namespace mj

@@ -108,6 +108,10 @@ Tiles are Tenhou strings (`"5m"`, `"0p"`, `"7z"`), which can also name the tile 
 
 `web/`: `main.js` runs the game, `table.js` draws the board from the steps, `actions.js` offers the human's choices, `results.js` shows the result of a round. The board shows the hands (the human's face up), rivers with sideways riichi tiles, melds at the right end of each seat, and the middle square with winds, scores, placements, riichi sticks, round, honba, wall and dora. Discards are clicks on the hand; calls are buttons above the hand, and a call with several options opens a chooser in front of the board. Tile images are in `web/tiles/pngs/`, named by Tenhou string, `tileBack.png` for the back.
 
+## Test setups
+
+To reach rare situations on purpose, a game can start from a scenario (`src/web/Scenarios.cpp`), chosen in the "Setup" select. A scenario gives the 13-tile hands and the first draws by position (you, right, across, left); `scenarioWallStart` turns them into the start of the first round's wall for the human's seat (`Wall::stacked`, `Game::stackFirstWall`). Later rounds are random. The scenarios are written for `CallingPlayer` opponents (`src/players/`), which take every call and otherwise discard what they draw, so their draws are their discards; choosing a scenario switches the "Opponents" select to them. A normal game with CallingAI opponents shows many melds.
+
 ## Still to do
 
 Done: pacing (`play()` in `main.js` pauses before each step, clicks are ignored meanwhile), the latest discard highlighted, calls announced at the caller's seat, the winning or tenpai hands revealed on the board, the round result screen (`results.js`), which waits for a click, and the final scores at the game end.

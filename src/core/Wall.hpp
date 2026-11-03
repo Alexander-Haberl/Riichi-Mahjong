@@ -23,6 +23,12 @@ public:
     // Meant for tests and replays. Throws std::invalid_argument unless there are 136 tiles.
     explicit Wall(std::vector<Tile> tiles);
 
+    // A shuffled wall whose live wall starts with `start`, in this order; the
+    // remaining tiles of the set are shuffled behind it. Throws std::invalid_argument
+    // if `start` cannot come from the set (a fifth copy, more red fives than
+    // redFivesPerSuit, or more tiles than the live wall holds).
+    static Wall stacked(const std::vector<Tile>& start, std::mt19937& rng, int redFivesPerSuit = 1);
+
     // Four of each kind, with redFivesPerSuit of the fives in each suit red.
     static std::vector<Tile> fullSet(int redFivesPerSuit = 1);
 

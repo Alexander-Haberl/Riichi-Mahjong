@@ -50,6 +50,11 @@ public:
     Game(const Game&) = delete;
     Game& operator=(const Game&) = delete;
 
+    // The first round's live wall will start with these tiles (see Wall::stacked);
+    // later rounds are random. The deal goes 13 tiles to each seat from the dealer
+    // (seat 0), then the draws in turn order. Throws std::logic_error after start().
+    void stackFirstWall(std::vector<Tile> start);
+
     // Starts the game and runs to the first human decision, or to its end.
     void start();
 
@@ -74,6 +79,9 @@ public:
     GameResult result() const;
 
     const RuleSet& rules() const { return scorer_.rules(); }
+
+    // The seat the constructor gave this player.
+    int seatOf(int player) const { return seatOfPlayer_[static_cast<size_t>(player)]; }
 
     // State of the current round, or the next one between rounds; seats, not players.
     Honor roundWind() const { return roundWind_; }
@@ -103,6 +111,9 @@ private:
     std::array<int, 4> seatOfPlayer_;      // seatOfPlayer_[player] = seat
     std::array<IPlayer*, 4> playerAtSeat_;
     std::optional<int> viewerSeat_;
+
+    std::optional<std::vector<Tile>> stackedStart_;  // for the first round, until it is dealt
+    bool started_ = false;
 
     std::optional<RoundController> round_;  // the round in progress
     std::vector<GameStep> steps_;

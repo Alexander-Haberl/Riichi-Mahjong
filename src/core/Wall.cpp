@@ -23,6 +23,23 @@ Wall::Wall(std::vector<Tile> tiles) : tiles_(std::move(tiles)) {
     if (tiles_.size() != kNumTiles) throw std::invalid_argument("a wall needs exactly 136 tiles");
 }
 
+Wall Wall::stacked(const std::vector<Tile>& start, std::mt19937& rng, int redFivesPerSuit) {
+    if (start.size() > static_cast<size_t>(kNumTiles - kDeadWallSize)) {
+        throw std::invalid_argument("more stacked tiles than the live wall holds");
+    }
+    std::vector<Tile> rest = fullSet(redFivesPerSuit);
+    for (Tile tile : start) {
+        const auto found = std::find(rest.begin(), rest.end(), tile);
+        if (found == rest.end()) throw std::invalid_argument("stacked tile not left in the set: " + tile.toString());
+        rest.erase(found);
+    }
+    std::shuffle(rest.begin(), rest.end(), rng);
+
+    std::vector<Tile> tiles = start;
+    tiles.insert(tiles.end(), rest.begin(), rest.end());
+    return Wall(std::move(tiles));
+}
+
 std::vector<Tile> Wall::fullSet(int redFivesPerSuit) {
     std::vector<Tile> tiles;
     tiles.reserve(kNumTiles);
