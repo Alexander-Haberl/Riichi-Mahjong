@@ -30,11 +30,7 @@ export function showActions(decision, onChoose) {
     closeChooser();
     const actions = decision.legal.map((action, index) => ({ action, index }));
 
-    const discards = new Map();  // tile -> index of its Discard action
-    for (const { action, index } of actions) {
-        if (action.type === "Discard") discards.set(action.tile, index);
-    }
-    enableDiscards([...discards.keys()], (tile) => onChoose(discards.get(tile)));
+    enableDiscards(actions.filter(({ action }) => action.type === "Discard"), onChoose);
 
     const buttons = [];
     for (const { label, types } of CALLS) {

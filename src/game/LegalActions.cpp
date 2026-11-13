@@ -23,6 +23,19 @@ namespace mj{
             return result;
         }
 
+        // The discard actions of this type for one tile of the current hand. The
+        // drawn tile is a tsumogiri discard; an identical tile in the hand besides
+        // it gives a second action that discards that copy instead.
+        std::vector<Action> discardsOf(const RoundState& state, ActionType type, Tile t) {
+            const PlayerState& player = state.currentPlayer();
+            if (!state.tileDraw || player.tileDrawn() != t) return {Action{type, t}};
+
+            std::vector<Action> result{Action{type, t, {}, true}};
+            const auto& concealed = player.hand.concealed();
+            if (std::count(concealed.begin(), concealed.end(), t) > 1) result.push_back({type, t});
+            return result;
+        }
+
         // A closed kan during riichi must use the drawn tile and keep the waits.
         bool riichiKanKeepsWaits(const PlayerState& player, Tile kind) {
             Tile drawn = player.tileDrawn();
@@ -61,7 +74,8 @@ namespace mj{
             for (Tile t : distinctTiles(hand.concealed())) {
                 TileCounts rest = counts;
                 --rest[t.kind()];
-                if (isTenpai(rest)) result.push_back({ActionType::Riichi, t});
+                if (!isTenpai(rest)) continue;
+                for (Action& action : discardsOf(state, ActionType::Riichi, t)) result.push_back(std::move(action));
             }
             return result;
         }
@@ -114,7 +128,7 @@ namespace mj{
         // In riichi only the drawn tile; right after a chi / pon everything except the kuikae tiles.
         std::vector<Action> computeDiscards(const RoundState& state, const RuleSet& rules) {
             const PlayerState& player = state.currentPlayer();
-            if (player.riichi) return {Action{ActionType::Discard, player.tileDrawn()}};
+            if (player.riichi) return {Action{ActionType::Discard, player.tileDrawn(), {}, true}};
 
             std::vector<Tile> discards = distinctTiles(player.hand.concealed());
             if (!state.tileDraw && state.lastCall && !rules.allowKuikae) {
@@ -124,7 +138,9 @@ namespace mj{
             }
 
             std::vector<Action> result;
-            for (Tile t : discards) result.push_back({ActionType::Discard, t});
+            for (Tile t : discards) {
+                for (Action& action : discardsOf(state, ActionType::Discard, t)) result.push_back(std::move(action));
+            }
             return result;
         }
 

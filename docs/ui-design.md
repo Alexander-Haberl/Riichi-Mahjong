@@ -96,7 +96,8 @@ Tiles are Tenhou strings (`"5m"`, `"0p"`, `"7z"`), which can also name the tile 
 { type: "Pon", handTiles: ["5m", "0m"], calledTile: "5m", fromSeat: 3, kanFromPon: false }
 
 // Decision: submit(i) answers with legal[i]. Pass and KyuushuKyuuhai have tile: null
-{ seat: 0, legal: [{ type: "Riichi", tile: "9p", handTiles: [] }, ...] }
+{ seat: 0, legal: [{ type: "Riichi", tile: "9p", handTiles: [], tsumogiri: true }, ...] }
+// tsumogiri: the drawn tile; with an identical copy in the hand, a second action discards the copy
 
 // Result: by player, the human is player 0
 { scores: [31000, 25000, 24000, 20000], ranks: [1, 2, 3, 4], riichiSticksLeft: 0 }

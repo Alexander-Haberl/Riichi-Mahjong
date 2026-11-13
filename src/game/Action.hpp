@@ -30,6 +30,9 @@ struct Action {
     Tile tile{};
     // Chi / Pon / OpenKan / ClosedKan: the tiles taken from the hand.
     std::vector<Tile> handTiles{};
+    // Discard / Riichi: the discarded tile is the one just drawn, not an
+    // identical tile from the hand.
+    bool tsumogiri = false;
 
     bool operator==(const Action&) const = default;
 };

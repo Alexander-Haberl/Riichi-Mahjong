@@ -166,16 +166,13 @@ void RoundController::closedKan(const Action& action) {
 void RoundController::discard(const Action& action) {
     PlayerState& player = state_.currentPlayer();
     const bool declaringRiichi = action.type == ActionType::Riichi;
-    // TODO add tsumogiri when added to Action: with an identical tile elsewhere
-    // in the hand, this cannot tell which of the two was discarded.
-    const bool tsumogiri = state_.tileDraw && action.tile == player.tileDrawn();
 
     if (declaringRiichi) {
         player.declareRiichi(state_.anyCall);
     } else {
         player.ippatsu = false;
     }
-    player.discard(action.tile, tsumogiri, declaringRiichi);
+    player.discard(action.tile, action.tsumogiri, declaringRiichi);
     player.temporaryFuriten = false;
 
     GameEvent event{EventType::Discard, state_.current};

@@ -131,7 +131,7 @@ TEST_CASE("Web JSON: abort reason and score changes") {
 
 TEST_CASE("Web JSON: a decision lists the actions, without a tile where there is none") {
     const Decision decision{2,
-                            {Action{ActionType::Riichi, tile("0p")},
+                            {Action{ActionType::Riichi, tile("0p"), {}, true},
                              Action{ActionType::Chi, tile("3m"), parseTiles("12m")},
                              Action{ActionType::Pass},
                              Action{ActionType::KyuushuKyuuhai}}};
@@ -139,8 +139,10 @@ TEST_CASE("Web JSON: a decision lists the actions, without a tile where there is
     const json out = toJson(decision);
 
     CHECK(out["seat"] == 2);
-    CHECK(out["legal"][0] == json{{"type", "Riichi"}, {"tile", "0p"}, {"handTiles", json::array()}});
-    CHECK(out["legal"][1] == json{{"type", "Chi"}, {"tile", "3m"}, {"handTiles", {"1m", "2m"}}});
+    CHECK(out["legal"][0] ==
+          json{{"type", "Riichi"}, {"tile", "0p"}, {"handTiles", json::array()}, {"tsumogiri", true}});
+    CHECK(out["legal"][1] ==
+          json{{"type", "Chi"}, {"tile", "3m"}, {"handTiles", {"1m", "2m"}}, {"tsumogiri", false}});
     CHECK(out["legal"][2]["tile"].is_null());
     CHECK(out["legal"][3]["tile"].is_null());
 }
