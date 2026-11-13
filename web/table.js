@@ -117,19 +117,24 @@ function render(view) {
 }
 
 // Lets the human discard by clicking a tile of their hand. The tiles named in
-// `tiles` rise on hover, and a click calls onDiscard with the tile's name.
+// `tiles` rise on hover, and a click calls onDiscard with the tile's name; the
+// others are grayed out (riichi, kuikae). Without any tiles, nothing changes.
 // Lasts until the hand is drawn again by the next step.
 export function enableDiscards(tiles, onDiscard) {
+    if (tiles.length === 0) return;
     for (const image of seatElements[0].querySelectorAll(".hand .tile")) {
-        if (!tiles.includes(image.dataset.tile)) continue;
+        if (!tiles.includes(image.dataset.tile)) {
+            image.classList.add("blocked");
+            continue;
+        }
         image.classList.add("discardable");
         image.addEventListener("click", () => onDiscard(image.dataset.tile));
     }
 }
 
-// Ends enableDiscards: the tiles no longer rise or react to clicks.
+// Ends enableDiscards: the tiles no longer rise, react to clicks or look grayed out.
 export function disableDiscards() {
-    for (const image of seatElements[0].querySelectorAll(".hand .discardable")) {
+    for (const image of seatElements[0].querySelectorAll(".hand .discardable, .hand .blocked")) {
         image.replaceWith(tileImage(image.dataset.tile));
     }
 }
@@ -193,6 +198,7 @@ function renderRiver(element, river, latest) {
         }
         const image = tileImage(discard.tile);
         if (latest && index === river.length - 1) image.classList.add("latest");
+        if (discard.tsumogiri) image.classList.add("tsumogiri");
         if (discard.riichi || sidewaysNext) {
             tiles.push(sideways(image));
             sidewaysNext = false;

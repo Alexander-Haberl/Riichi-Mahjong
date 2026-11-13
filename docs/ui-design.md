@@ -110,11 +110,7 @@ Tiles are Tenhou strings (`"5m"`, `"0p"`, `"7z"`), which can also name the tile 
 
 ## Still to do
 
-Done: pacing (`play()` in `main.js` pauses before each step, clicks are ignored meanwhile), the latest discard highlighted, calls announced at the caller's seat, the winning or tenpai hands revealed on the board, the round result screen (`results.js`), which waits for a click, and the final scores at the game end.
-
-Next, in this order:
-
-1. **Options left of the board:** automatic discard (in riichi, when discarding the drawn tile is the only action) and auto-pass on chi and pon (ron always asks).
+Done: pacing (`play()` in `main.js` pauses before each step, clicks are ignored meanwhile), the latest discard highlighted, calls announced at the caller's seat, the winning or tenpai hands revealed on the board, the round result screen (`results.js`), which waits for a click, the final scores at the game end, non-discardable hand tiles grayed out, and the options left of the board (`options.js`): gray out tsumogiri discards, auto-call win, auto-pass on chi, pon and open kan (ron always asks), and auto-discard in riichi when the drawn tile is the only discard.
 
 The rules are `webRules()` in `src/web/WebGame.hpp`, the standard rules for now. The seed comes from the browser and is shown, so a game can be replayed.
 
