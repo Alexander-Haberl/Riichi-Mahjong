@@ -25,7 +25,8 @@ struct GameResult {
 // plus 300 per honba, and the winner takes the riichi sticks. With several
 // winners, the discarder pays each one, and honba and sticks go to the first
 // winner in turn order. An exhaustive draw pays 3000 from the noten to the
-// tenpai players. Riichi deposits made during the round are not included:
+// tenpai players, or, if anyone has nagashi mangan, only a mangan tsumo to
+// each of those players, without honba. Riichi deposits made during the round are not included:
 // they are already in the finished round's scores.
 std::array<int, 4> payments(const RoundResult& result, int dealer, int honba, int riichiSticks);
 

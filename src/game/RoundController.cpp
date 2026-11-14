@@ -57,6 +57,13 @@ bool fourSameWinds(const RoundState& state) {
            });
 }
 
+// Nagashi mangan: every discard a terminal or honor, and none of them called.
+bool hasNagashi(const PlayerState& player) {
+    return !player.river.empty() && std::all_of(player.river.begin(), player.river.end(), [](const RiverTile& discard) {
+               return discard.tile.isTerminalOrHonor() && !discard.calledAway;
+           });
+}
+
 }  // namespace
 
 RoundController::RoundController(RoundState state, const Scorer& scorer, std::optional<int> viewerSeat)
@@ -400,6 +407,10 @@ void RoundController::finishExhaustiveDraw() {
         result.tenpai[static_cast<size_t>(seat)] = true;
         event.revealedHands[static_cast<size_t>(seat)] = hand;
     }
+    if (rules().nagashiMangan) {
+        for (int seat = 0; seat < 4; ++seat) result.nagashi[static_cast<size_t>(seat)] = hasNagashi(state_.player(seat));
+    }
+    event.nagashi = result.nagashi;
     finish(std::move(result), std::move(event));
 }
 

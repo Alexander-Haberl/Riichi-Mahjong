@@ -244,6 +244,7 @@ namespace mj{
         ctx.tsumo = true;
         ctx.rinshan = state.rinshan;
         ctx.haitei = state.wall.remaining() == 0 && !state.rinshan;
+        ctx.firstDraw = state.currentPlayer().firstTurn() && !state.anyCall;
         return ctx;
     }
 

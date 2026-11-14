@@ -142,6 +142,7 @@ void to_json(json& out, const GameEvent& event) {
            {"revealedHands", std::move(revealedHands)},
            {"uraDoraIndicators", event.uraDoraIndicators},
            {"abortReason", orNull(event.abortReason)},
+           {"nagashi", event.nagashi},
            {"scoreChanges", event.scoreChanges}};
 }
 

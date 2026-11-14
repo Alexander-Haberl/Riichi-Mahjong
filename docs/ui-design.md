@@ -76,6 +76,7 @@ Tiles are Tenhou strings (`"5m"`, `"0p"`, `"7z"`), which can also name the tile 
     revealedHands: [null, { concealed: ["1m", ...], melds: [Meld] }, null, null],  // by seat
     uraDoraIndicators: ["3p"],
     abortReason: "SuufonRenda",       // or null
+    nagashi: [false, true, false, false],  // ExhaustiveDraw: nagashi mangan, by seat
     scoreChanges: [-3900, 3900, 0, 0]
   },
   view: {

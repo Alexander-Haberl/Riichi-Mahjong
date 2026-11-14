@@ -25,8 +25,8 @@ RoundResult tsumo(int seat, int basicPoints) {
     return RoundResult{RoundEnd::Tsumo, {win(seat, seat, basicPoints)}, {}, std::nullopt};
 }
 
-RoundResult exhaustiveDraw(std::array<bool, 4> tenpai) {
-    return RoundResult{RoundEnd::ExhaustiveDraw, {}, tenpai, std::nullopt};
+RoundResult exhaustiveDraw(std::array<bool, 4> tenpai, std::array<bool, 4> nagashi = {}) {
+    return RoundResult{RoundEnd::ExhaustiveDraw, {}, tenpai, std::nullopt, nagashi};
 }
 
 }  // namespace
@@ -88,3 +88,20 @@ TEST_CASE("Draws keep honba and sticks on the table") {
     CHECK(payments(exhaustiveDraw({true, false, false, false}), 0, 3, 2) == Change{3000, -1000, -1000, -1000});
     CHECK(payments(RoundResult{RoundEnd::Aborted, {}, {}, AbortReason::SuufonRenda}, 0, 3, 2) == Change{});
 }
+
+TEST_CASE("Nagashi mangan is paid like a mangan tsumo, instead of the tenpai payments") {
+    // Non-dealer: 4000 from the dealer, 2000 from the others.
+    CHECK(payments(exhaustiveDraw({}, {false, true, false, false}), 0, 0, 0) == Change{-4000, 8000, -2000, -2000});
+    // Dealer: 4000 from everyone.
+    CHECK(payments(exhaustiveDraw({}, {true, false, false, false}), 0, 0, 0) == Change{12000, -4000, -4000, -4000});
+    // Tenpai payments fall away.
+    CHECK(payments(exhaustiveDraw({false, true, true, false}, {false, true, false, false}), 0, 0, 0) ==
+          Change{-4000, 8000, -2000, -2000});
+    // Two at once: each is paid.
+    CHECK(payments(exhaustiveDraw({}, {false, true, true, false}), 0, 0, 0) == Change{-8000, 6000, 6000, -4000});
+}
+
+TEST_CASE("Nagashi mangan leaves honba and sticks on the table") {
+    CHECK(payments(exhaustiveDraw({}, {false, true, false, false}), 0, 3, 2) == Change{-4000, 8000, -2000, -2000});
+}
+

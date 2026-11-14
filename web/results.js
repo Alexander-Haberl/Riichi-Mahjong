@@ -83,8 +83,10 @@ function sections(event, view) {
             return event.wins.map((win) => winSection(win, event, view));
         case "ExhaustiveDraw": {
             const tenpai = event.revealedHands.flatMap((hand, seat) => (hand ? [name(seat, view)] : []));
-            return [section(heading("Exhaustive draw"),
-                            text(tenpai.length > 0 ? `Tenpai: ${tenpai.join(", ")}` : "Nobody is tenpai"))];
+            const nagashi = event.nagashi.flatMap((has, seat) => (has ? [name(seat, view)] : []));
+            const lines = [text(tenpai.length > 0 ? `Tenpai: ${tenpai.join(", ")}` : "Nobody is tenpai")];
+            if (nagashi.length > 0) lines.push(text(`Nagashi mangan: ${nagashi.join(", ")}`, "total"));
+            return [section(heading("Exhaustive draw"), ...lines)];
         }
         case "Abort":
             return [section(heading("Abortive draw"), text(ABORT_REASONS[event.abortReason]))];

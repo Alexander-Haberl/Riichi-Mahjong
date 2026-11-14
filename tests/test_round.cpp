@@ -696,3 +696,59 @@ TEST_CASE("The river records whether the drawn tile or its copy from the hand wa
     CHECK(round.state().players[0].river[0].tsumogiri == tsumogiri);
 }
 
+namespace {
+
+// Draws for a round without calls: seat 1 draws (and discards) only 9m, the others 8p.
+std::string nagashiDraws() {
+    std::string draws;
+    for (int turn = 0; turn < 70; ++turn) draws += turn % 4 == 1 ? "9m" : "8p";
+    return draws;
+}
+
+}  // namespace
+
+TEST_CASE("Nagashi mangan: only terminal and honor discards, none called") {
+    std::array<TestPlayer, 4> players;
+    RuleSet rules = testRules();
+    const std::string draws = nagashiDraws();
+
+    SECTION("found at the exhaustive draw") {
+        Scorer scorer = makeScorer({}, rules);
+        RoundController round(RoundState(stackedWall({kJunk, kJunk, kJunk, kJunk}, draws.c_str()),
+                                         Honor::East, 0, kScores),
+                              scorer, 0);
+        round.start();
+        while (round.pending()) {
+            const Decision decision = *round.pending();
+            round.submit(players[static_cast<size_t>(decision.seat)].chooseAction(
+                PlayerView(round.state(), decision.seat), decision.legal));
+        }
+        REQUIRE(round.result()->end == RoundEnd::ExhaustiveDraw);
+        CHECK(round.result()->nagashi == std::array<bool, 4>{false, true, false, false});
+
+        const auto steps = round.takeSteps();
+        CHECK(steps.back().event.type == EventType::ExhaustiveDraw);
+        CHECK(steps.back().event.nagashi == std::array<bool, 4>{false, true, false, false});
+    }
+    SECTION("not with the rule off") {
+        rules.nagashiMangan = false;
+        Scorer scorer = makeScorer({}, rules);
+        RoundController round(RoundState(stackedWall({kJunk, kJunk, kJunk, kJunk}, draws.c_str()),
+                                         Honor::East, 0, kScores),
+                              scorer);
+        const RoundResult result = round.play(seats(players));
+        CHECK(result.nagashi == std::array<bool, 4>{});
+    }
+    SECTION("not when a discard was called") {
+        players[2].callPon = true;  // seat 2 pons the first 9m
+        Scorer scorer = makeScorer({}, rules);
+        RoundController round(RoundState(stackedWall({kJunk, kJunk, "99m147p258s14567z", kJunk}, draws.c_str()),
+                                         Honor::East, 0, kScores),
+                              scorer);
+        const RoundResult result = round.play(seats(players));
+        REQUIRE(result.end == RoundEnd::ExhaustiveDraw);
+        REQUIRE(round.state().players[1].river[0].calledAway);
+        CHECK_FALSE(result.nagashi[1]);
+    }
+}
+

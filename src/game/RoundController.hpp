@@ -21,6 +21,7 @@ struct RoundResult {
     std::vector<Win> wins;
     std::array<bool, 4> tenpai{};             // only filled at an exhaustive draw
     std::optional<AbortReason> abortReason{};  // only filled when aborted
+    std::array<bool, 4> nagashi{};             // exhaustive draw: nagashi mangan, by seat
 };
 
 // Runs one round step by step. It works until it needs a decision, then stops

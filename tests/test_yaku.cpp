@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "TestHelpers.hpp"
+#include "game/LegalActions.hpp"
 #include "rules/Scorer.hpp"
 #include "rules/Yaku.hpp"
 
@@ -51,11 +52,11 @@ TEST_CASE("Yaku names are unique") {
     const auto yaku = standardYaku(testRules());
     for (const Yaku& y : yaku) names.insert(y.name);
     CHECK(names.size() == yaku.size());
-    CHECK(yaku.size() == 26);
+    CHECK(yaku.size() == 42);
 }
 
 TEST_CASE("Kokushi is the only yaku of a kokushi hand") {
-    const WinContext ctx = win("19m19p19s12345677z", "7z", false);
+    const WinContext ctx = win("19m19p19s12345677z", "1z", false);  // single wait
     for (const Yaku& yaku : standardYaku(testRules())) {
         INFO(yaku.name);
         CHECK(han(yaku.name, ctx) == (yaku.name == "Kokushi Musou" ? kYakumanHan : 0));
@@ -356,7 +357,7 @@ TEST_CASE("The scorer prefers ryanpeikou to chiitoitsu") {
 }
 
 TEST_CASE("Kokushi is worth a yakuman, whatever else is there") {
-    WinContext ctx = win("19m19p19s12345677z", "7z", true);
+    WinContext ctx = win("19m19p19s12345677z", "1z", true);  // single wait
     ctx.riichi = true;
 
     auto result = standardScorer(testRules()).score(ctx);
@@ -376,3 +377,144 @@ TEST_CASE("The kuitan rule decides whether an open tanyao wins") {
     rules.kuitan = false;
     CHECK_FALSE(standardScorer(rules).score(ctx).has_value());
 }
+
+// --- Remaining regular yaku -------------------------------------------------
+
+TEST_CASE("Junchan: terminals in every block, a sequence, no honor") {
+    CHECK(han("Junchan", win("123m789p789s123s99m", "9m", false)) == 3);
+    CHECK(han("Junchan", win("123m789p123s99m89s", "9m", false, {chi("89s", "7s")})) == 2);
+    CHECK(han("Junchan", win("123m789p789s111z99m", "9m", false)) == 0);  // an honor: chanta
+    CHECK(han("Chanta", win("123m789p789s123s99m", "9m", false)) == 0);
+    CHECK(han("Junchan", win("111m999p111s999s99m", "9m", false)) == 0);  // no sequence
+    CHECK(han("Junchan", win("123m123m789m999m11m", "1m", false)) == 3);  // with chinitsu
+}
+
+TEST_CASE("Honroutou: terminals and honors only, both of them") {
+    CHECK(han("Honroutou", win("111m999p111s111z99s", "9s", false)) == 2);
+    CHECK(han("Honroutou", win("1199m1199p11s1122z", "2z", false)) == 2);  // chiitoitsu
+    CHECK(han("Honroutou", win("111m999p111s999s99m", "9m", false)) == 0);  // no honor: chinroutou
+    CHECK(han("Honroutou", win("123m999p111s111z99s", "9s", false)) == 0);  // a sequence
+}
+
+TEST_CASE("Shousangen: two dragon triplets and a dragon pair, besides the yakuhai") {
+    const WinContext ctx = win("555z666z77z123m456p", "4p", false);
+    CHECK(han("Shousangen", ctx) == 2);
+    CHECK(han("White Dragon", ctx) == 1);
+    CHECK(han("Shousangen", win("555z666z777z123m11p", "1p", false)) == 0);  // daisangen
+    CHECK(han("Shousangen", win("555z66z123m456p789s", "9s", false)) == 0);
+}
+
+TEST_CASE("Sanshoku doukou: triplets of one number in all suits") {
+    CHECK(han("Sanshoku Doukou", win("222m222p222s456s11z", "6s", false)) == 2);
+    CHECK(han("Sanshoku Doukou", win("222m222p222s456s11z", "6s", false, {openKan("222s", "2s")})) == 2);
+    CHECK(han("Sanshoku Doukou", win("222m222p333s456s11z", "6s", false)) == 0);
+}
+
+TEST_CASE("Sankantsu: exactly three kans") {
+    const std::vector<Meld> threeKans = {closedKan("1111m"), openKan("999p", "9p"), closedKan("2222s")};
+    CHECK(han("Sankantsu", win("1111m999p2222s456m11z", "6m", false, threeKans)) == 2);
+    CHECK(han("Sankantsu", win("1111m999p456m222s11z", "6m", false, {closedKan("1111m"), openKan("999p", "9p")})) == 0);
+}
+
+// --- Yakuman ----------------------------------------------------------------
+
+TEST_CASE("Kokushi counts double on a 13-sided wait") {
+    CHECK(han("Kokushi Musou", win("19m19p19s11234567z", "7z", false)) == kYakumanHan);
+    CHECK(han("Kokushi Musou", win("19m19p19s11234567z", "1z", false)) == 2 * kYakumanHan);
+}
+
+TEST_CASE("Suuankou: four concealed triplets, double on a tanki wait") {
+    const char* hand = "111m222p333s444s55z";
+    CHECK(han("Suuankou", win(hand, "2p", true)) == kYakumanHan);
+    CHECK(han("Suuankou", win(hand, "2p", false)) == 0);  // the ronned triplet is open
+    CHECK(han("Sanankou", win(hand, "2p", false)) == 2);
+    CHECK(han("Suuankou", win(hand, "5z", false)) == 2 * kYakumanHan);
+    CHECK(han("Suuankou", win("111m222p333s4444s55z", "5z", true, {closedKan("4444s")})) == 2 * kYakumanHan);
+    CHECK(han("Suuankou", win("111m222p333s44s55z", "5z", true, {pon("44s", "4s")})) == 0);
+}
+
+TEST_CASE("Dragon and wind yakuman") {
+    CHECK(han("Daisangen", win("555z666z777z123m11p", "1p", false)) == kYakumanHan);
+    CHECK(han("Daisangen", win("555z666z77z123m456p", "4p", false)) == 0);
+    CHECK(han("Shousuushii", win("111z222z333z44z123m", "3m", false)) == kYakumanHan);
+    CHECK(han("Shousuushii", win("111z222z333z444z11m", "1m", false)) == 0);
+    CHECK(han("Daisuushii", win("111z222z333z444z11m", "1m", false)) == 2 * kYakumanHan);
+    CHECK(han("Daisuushii", win("111z222z333z44z123m", "3m", false)) == 0);
+}
+
+TEST_CASE("Tsuuiisou, chinroutou and ryuuiisou") {
+    CHECK(han("Tsuuiisou", win("111z222z555z666z77z", "7z", false)) == kYakumanHan);
+    CHECK(han("Tsuuiisou", win("11223344556677z", "7z", false)) == kYakumanHan);  // chiitoitsu
+    CHECK(han("Tsuuiisou", win("111z222z555z666z11m", "1m", false)) == 0);
+    CHECK(han("Chinroutou", win("111m999m111p999s11s", "1s", false)) == kYakumanHan);
+    CHECK(han("Chinroutou", win("111m999p111s111z99s", "9s", false)) == 0);  // an honor
+    CHECK(han("Ryuuiisou", win("234s234s666s888s66z", "6z", false)) == kYakumanHan);
+    CHECK(han("Ryuuiisou", win("234s234s666s888s22s", "2s", false)) == kYakumanHan);  // no green dragon
+    CHECK(han("Ryuuiisou", win("234s234s666s888s55z", "5z", false)) == 0);
+    CHECK(han("Ryuuiisou", win("345s234s666s888s66z", "6z", false)) == 0);  // a 5s
+}
+
+TEST_CASE("Chuuren poutou: closed, one suit, double on the 9-sided wait") {
+    const char* hand = "11123455678999m";
+    CHECK(han("Chuuren Poutou", win(hand, "9m", false)) == kYakumanHan);
+    CHECK(han("Chuuren Poutou", win(hand, "5m", false)) == 2 * kYakumanHan);
+    CHECK(han("Chuuren Poutou", win("11123456789999m", "9m", true)) == 2 * kYakumanHan);
+    CHECK(han("Chuuren Poutou", win("11122345678999m", "2m", false)) == 2 * kYakumanHan);
+    CHECK(han("Chuuren Poutou", win("11122233345699m", "9m", false)) == 0);  // chinitsu, not the shape
+    CHECK(han("Chuuren Poutou", win("1112345678999m", "9m", false, {chi("23m", "1m")})) == 0);
+}
+
+TEST_CASE("Suukantsu: four kans") {
+    const std::vector<Meld> kans = {closedKan("1111m"), openKan("999p", "9p"), closedKan("2222s"),
+                                    openKan("777z", "7z")};
+    CHECK(han("Suukantsu", win("1111m999p2222s777z11z", "1z", true, kans)) == kYakumanHan);
+    CHECK(han("Sankantsu", win("1111m999p2222s777z11z", "1z", true, kans)) == 0);
+}
+
+TEST_CASE("Tenhou and chiihou: tsumo on the first draw") {
+    WinContext ctx = win(kPlain, "2p", true);
+    CHECK(han("Tenhou", ctx) == 0);
+    ctx.firstDraw = true;
+    ctx.seatWind = Honor::East;
+    CHECK(han("Tenhou", ctx) == kYakumanHan);
+    CHECK(han("Chiihou", ctx) == 0);
+    ctx.seatWind = Honor::South;
+    CHECK(han("Tenhou", ctx) == 0);
+    CHECK(han("Chiihou", ctx) == kYakumanHan);
+}
+
+TEST_CASE("Double yakuman and stacking follow the rules") {
+    const WinContext ctx = win("111z222z333z444z55z", "5z", true);  // daisuushii, tsuuiisou, suuankou tanki
+    RuleSet rules = testRules();
+
+    rules.doubleYakuman = true;
+    rules.stackYakuman = true;
+    auto result = standardScorer(rules).score(ctx);
+    REQUIRE(result.has_value());
+    CHECK(result->han == 2 * kYakumanHan + kYakumanHan + 2 * kYakumanHan);
+
+    rules.doubleYakuman = false;
+    result = standardScorer(rules).score(ctx);
+    REQUIRE(result.has_value());
+    CHECK(result->han == 3 * kYakumanHan);
+
+    rules.stackYakuman = false;
+    result = standardScorer(rules).score(ctx);
+    REQUIRE(result.has_value());
+    CHECK(result->han == kYakumanHan);
+}
+
+TEST_CASE("The first draw flag: tsumo on the own first draw, before any call") {
+    RoundState state(Wall(Wall::fullSet()), Honor::East, 0, {25000, 25000, 25000, 25000});
+    state.players[1].hand = Hand(parseTiles(kPlain));
+    state.current = 1;
+    state.tileDraw = true;
+    CHECK(tsumoContext(state).firstDraw);
+
+    state.anyCall = true;
+    CHECK_FALSE(tsumoContext(state).firstDraw);
+    state.anyCall = false;
+    state.players[1].river.push_back({tile("9m")});
+    CHECK_FALSE(tsumoContext(state).firstDraw);
+}
+

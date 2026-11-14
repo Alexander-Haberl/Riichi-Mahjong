@@ -51,6 +51,7 @@ inline RuleSet testRules() {
     rules.riichiNeeds1000Points = true;
     rules.multipleRon = true;
     rules.tripleRonAborts = true;
+    rules.nagashiMangan = true;
     rules.kyuushuKyuuhai = true;
     rules.suufonRenda = true;
     rules.suuchaRiichi = true;

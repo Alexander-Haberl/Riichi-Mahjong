@@ -20,6 +20,8 @@ struct WinContext {
     bool houtei = false;    // ron on the last discard
     bool rinshan = false;   // tsumo on the replacement tile after a kan
     bool chankan = false;   // ron on a tile added to a pon
+    // Tsumo on the player's first draw, with no call or kan before it (tenhou, chiihou).
+    bool firstDraw = false;
 
     Honor roundWind = Honor::East;
     Honor seatWind = Honor::East;

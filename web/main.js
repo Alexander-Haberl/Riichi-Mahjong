@@ -40,6 +40,7 @@ function describe(event) {
     if (event.riichiDiscard) parts.push("(riichi)");
     if (event.meld) parts.push(event.meld.type);
     if (event.abortReason) parts.push(event.abortReason);
+    event.nagashi.forEach((has, seat) => { if (has) parts.push(`nagashi mangan seat ${seat}`); });
     for (const win of event.wins) {
         const yaku = win.yaku.map((source) => `${source.name} ${source.han}`).join(", ");
         parts.push(`seat ${win.seat}: ${win.han} han ${win.fu} fu [${yaku}]`);
