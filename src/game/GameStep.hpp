@@ -62,6 +62,7 @@ struct GameEvent {
     std::array<std::optional<Hand>, 4> revealedHands{};  // hands shown at the end of a round
     std::vector<Tile> uraDoraIndicators{};               // Tsumo, Ron: for a riichi win
     std::optional<AbortReason> abortReason{};            // Abort
+    std::array<bool, 4> nagashi{};                       // ExhaustiveDraw: nagashi mangan, by seat
     std::array<int, 4> scoreChanges{};                   // RoundEnd: by seat
 };
 

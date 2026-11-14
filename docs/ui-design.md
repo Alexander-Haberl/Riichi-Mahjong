@@ -76,6 +76,7 @@ Tiles are Tenhou strings (`"5m"`, `"0p"`, `"7z"`), which can also name the tile 
     revealedHands: [null, { concealed: ["1m", ...], melds: [Meld] }, null, null],  // by seat
     uraDoraIndicators: ["3p"],
     abortReason: "SuufonRenda",       // or null
+    nagashi: [false, true, false, false],  // ExhaustiveDraw: nagashi mangan, by seat
     scoreChanges: [-3900, 3900, 0, 0]
   },
   view: {
@@ -96,7 +97,8 @@ Tiles are Tenhou strings (`"5m"`, `"0p"`, `"7z"`), which can also name the tile 
 { type: "Pon", handTiles: ["5m", "0m"], calledTile: "5m", fromSeat: 3, kanFromPon: false }
 
 // Decision: submit(i) answers with legal[i]. Pass and KyuushuKyuuhai have tile: null
-{ seat: 0, legal: [{ type: "Riichi", tile: "9p", handTiles: [] }, ...] }
+{ seat: 0, legal: [{ type: "Riichi", tile: "9p", handTiles: [], tsumogiri: true }, ...] }
+// tsumogiri: the drawn tile; with an identical copy in the hand, a second action discards the copy
 
 // Result: by player, the human is player 0
 { scores: [31000, 25000, 24000, 20000], ranks: [1, 2, 3, 4], riichiSticksLeft: 0 }
@@ -114,11 +116,7 @@ To reach rare situations on purpose, a game can start from a scenario (`src/web/
 
 ## Still to do
 
-Done: pacing (`play()` in `main.js` pauses before each step, clicks are ignored meanwhile), the latest discard highlighted, calls announced at the caller's seat, the winning or tenpai hands revealed on the board, the round result screen (`results.js`), which waits for a click, and the final scores at the game end.
-
-Next, in this order:
-
-1. **Options left of the board:** automatic discard (in riichi, when discarding the drawn tile is the only action) and auto-pass on chi and pon (ron always asks).
+Done: pacing (`play()` in `main.js` pauses before each step, clicks are ignored meanwhile), the latest discard highlighted, calls announced at the caller's seat, the winning or tenpai hands revealed on the board, the round result screen (`results.js`), which waits for a click, the final scores at the game end, non-discardable hand tiles grayed out, and the options left of the board (`options.js`): gray out tsumogiri discards, auto-call win, auto-pass on chi, pon and open kan (ron always asks), and auto-discard in riichi when the drawn tile is the only discard.
 
 The rules are `webRules()` in `src/web/WebGame.hpp`, the standard rules for now. The seed comes from the browser and is shown, so a game can be replayed.
 

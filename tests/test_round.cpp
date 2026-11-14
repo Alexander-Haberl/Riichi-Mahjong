@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <catch2/generators/catch_generators.hpp>
 
 #include <algorithm>
 #include <numeric>
@@ -465,6 +466,15 @@ Action pick(const RoundController& round, ActionType type) {
     return *it;
 }
 
+// The first legal discard (or riichi) of this tile: for the drawn tile the tsumogiri one.
+Action discardOf(const RoundController& round, const char* t, ActionType type = ActionType::Discard) {
+    const std::vector<Action>& legal = round.pending()->legal;
+    const auto it = std::find_if(legal.begin(), legal.end(),
+                                 [&](const Action& a) { return a.type == type && a.tile == tile(t); });
+    REQUIRE(it != legal.end());
+    return *it;
+}
+
 }  // namespace
 
 TEST_CASE("The round stops at every decision and goes on with submit") {
@@ -482,7 +492,7 @@ TEST_CASE("The round stops at every decision and goes on with submit") {
     CHECK(steps[1].event.seat == 0);
     CHECK(steps[1].view.concealedCount(0) == 14);
 
-    round.submit({ActionType::Discard, tile("1z")});
+    round.submit(discardOf(round, "1z"));
     REQUIRE(round.pending().has_value());
     CHECK(round.pending()->seat == 1);
     steps = round.takeSteps();
@@ -543,7 +553,7 @@ TEST_CASE("Each step shows the table right after its event") {
     round.start();
     round.takeSteps();
 
-    round.submit({ActionType::Riichi, tile("2z")});
+    round.submit(discardOf(round, "2z", ActionType::Riichi));
     const auto steps = round.takeSteps();
     REQUIRE(eventTypes(steps) == std::vector{EventType::Discard, EventType::Draw});
 
@@ -581,7 +591,7 @@ TEST_CASE("A pon gives no draw: the caller decides next") {
                                      Honor::East, 0, kScores),
                           scorer, 2);
     round.start();
-    round.submit({ActionType::Discard, tile("1z")});
+    round.submit(discardOf(round, "1z"));
     REQUIRE(round.pending()->seat == 2);
     round.takeSteps();
 
@@ -601,9 +611,9 @@ TEST_CASE("Reactions are asked one seat at a time, in turn order") {
                                      Honor::East, 0, kScores),
                           scorer, 0);
     round.start();
-    round.submit({ActionType::Discard, tile("8p")});
-    round.submit({ActionType::Discard, tile("8p")});
-    round.submit({ActionType::Discard, tile("1z")});  // seat 2 discards what seats 3 and 0 wait on
+    round.submit(discardOf(round, "8p"));
+    round.submit(discardOf(round, "8p"));
+    round.submit(discardOf(round, "1z"));  // seat 2 discards what seats 3 and 0 wait on
     round.takeSteps();
 
     REQUIRE(round.pending()->seat == 3);
@@ -665,3 +675,80 @@ TEST_CASE("An exhaustive draw reveals only the tenpai hands") {
     CHECK(steps.back().event.revealedHands[0].has_value());
     CHECK_FALSE(steps.back().event.revealedHands[1].has_value());
 }
+
+TEST_CASE("The river records whether the drawn tile or its copy from the hand was discarded") {
+    Scorer scorer = noYaku();
+    RoundController round(RoundState(stackedWall({"123m456p789s1234z", kJunk, kJunk, kJunk}, "4z"),
+                                     Honor::East, 0, kScores),
+                          scorer, 0);
+    round.start();
+
+    std::vector<Action> discards;
+    for (const Action& a : round.pending()->legal) {
+        if (a.type == ActionType::Discard && a.tile == tile("4z")) discards.push_back(a);
+    }
+    REQUIRE(discards.size() == 2);  // the drawn 4z and the one dealt
+    const bool tsumogiri = GENERATE(true, false);
+    const Action& chosen = discards[0].tsumogiri == tsumogiri ? discards[0] : discards[1];
+    round.submit(chosen);
+
+    REQUIRE(round.state().players[0].river.size() == 1);
+    CHECK(round.state().players[0].river[0].tsumogiri == tsumogiri);
+}
+
+namespace {
+
+// Draws for a round without calls: seat 1 draws (and discards) only 9m, the others 8p.
+std::string nagashiDraws() {
+    std::string draws;
+    for (int turn = 0; turn < 70; ++turn) draws += turn % 4 == 1 ? "9m" : "8p";
+    return draws;
+}
+
+}  // namespace
+
+TEST_CASE("Nagashi mangan: only terminal and honor discards, none called") {
+    std::array<TestPlayer, 4> players;
+    RuleSet rules = testRules();
+    const std::string draws = nagashiDraws();
+
+    SECTION("found at the exhaustive draw") {
+        Scorer scorer = makeScorer({}, rules);
+        RoundController round(RoundState(stackedWall({kJunk, kJunk, kJunk, kJunk}, draws.c_str()),
+                                         Honor::East, 0, kScores),
+                              scorer, 0);
+        round.start();
+        while (round.pending()) {
+            const Decision decision = *round.pending();
+            round.submit(players[static_cast<size_t>(decision.seat)].chooseAction(
+                PlayerView(round.state(), decision.seat), decision.legal));
+        }
+        REQUIRE(round.result()->end == RoundEnd::ExhaustiveDraw);
+        CHECK(round.result()->nagashi == std::array<bool, 4>{false, true, false, false});
+
+        const auto steps = round.takeSteps();
+        CHECK(steps.back().event.type == EventType::ExhaustiveDraw);
+        CHECK(steps.back().event.nagashi == std::array<bool, 4>{false, true, false, false});
+    }
+    SECTION("not with the rule off") {
+        rules.nagashiMangan = false;
+        Scorer scorer = makeScorer({}, rules);
+        RoundController round(RoundState(stackedWall({kJunk, kJunk, kJunk, kJunk}, draws.c_str()),
+                                         Honor::East, 0, kScores),
+                              scorer);
+        const RoundResult result = round.play(seats(players));
+        CHECK(result.nagashi == std::array<bool, 4>{});
+    }
+    SECTION("not when a discard was called") {
+        players[2].callPon = true;  // seat 2 pons the first 9m
+        Scorer scorer = makeScorer({}, rules);
+        RoundController round(RoundState(stackedWall({kJunk, kJunk, "99m147p258s14567z", kJunk}, draws.c_str()),
+                                         Honor::East, 0, kScores),
+                              scorer);
+        const RoundResult result = round.play(seats(players));
+        REQUIRE(result.end == RoundEnd::ExhaustiveDraw);
+        REQUIRE(round.state().players[1].river[0].calledAway);
+        CHECK_FALSE(result.nagashi[1]);
+    }
+}
+

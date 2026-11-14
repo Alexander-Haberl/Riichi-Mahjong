@@ -1,6 +1,6 @@
-# Yaku specification (first set)
+# Yaku specification
 
-Implementation notes for the first 21 yaku of this project, all implemented in `src/rules/Yaku.cpp`. Kokushi Musou is implemented there too, as the first yakuman (`form == Kokushi`, 13 han; the double version for the 13-sided wait comes later). Remaining yaku (junchan, honroutou, shousangen, sanshoku doukou, sankantsu, the other yakuman) come later and are not covered here.
+Implementation notes for all yaku of this project, in `src/rules/Yaku.cpp`. All yaku and yakuman described here are implemented, including the double yakuman. Nagashi mangan is not a yaku but is implemented in the round controller (see below). Not implemented: renhou.
 
 ## How a yaku plugs in
 
@@ -79,6 +79,24 @@ Details:
 - **Chanta needs an honor.** A hand with sequences and terminals but no honors is junchan, which is a later yaku. Until then such a hand gets neither yaku; that is intended.
 - **Honitsu / chinitsu / tanyao on chiitoitsu.** These work by iterating over the seven pairs, and combine with chiitoitsu.
 
+### Remaining yaku
+
+| Name | Closed | Open | Forms | Condition |
+|---|---|---|---|---|
+| Junchan | 3 | 2 | Regular | Every block contains a terminal (sequence: `first.number()` is 1 or 7; other blocks: `first.isTerminal()`), **and** at least one sequence. No honor block. |
+| Honroutou | 2 | 2 | Regular, Chiitoitsu | Every block is a terminal or honor `Triplet` / `Kan` / `Pair` (`first.isTerminalOrHonor()`), no `Sequence`, **and** at least one terminal and at least one honor block. |
+| Shousangen | 2 | 2 | Regular | Two dragon `Triplet` / `Kan` blocks and a dragon `Pair`. |
+| Sanshoku Doukou | 2 | 2 | Regular | `Triplet` / `Kan` blocks with the same `first.number()` in man, pin and sou. |
+| Sankantsu | 2 | 2 | Regular | Exactly 3 `Kan` blocks, open or closed. |
+
+Details:
+
+- **Junchan and chanta.** The same check as chanta with "terminal" instead of "terminal or honor", and without an honor block. Chanta already requires an honor, so the two never fire together.
+- **Honroutou needs both kinds.** Without an honor block the hand is chinroutou, without a terminal block tsuuiisou: both yakuman, see below. Requiring both keeps honroutou off those hands. It is not strictly needed, since the scorer drops regular yaku once a yakuman is present, but it keeps the yaku correct on its own. Honroutou always comes with toitoi (regular form) or chiitoitsu; both add up.
+- **Shousangen and yakuhai.** The two dragon triplets also count as yakuhai, so shousangen is 2 + 2 = 4 han. That is intended: do not exclude the dragons. With three dragon triplets the hand is daisangen (yakuman), and shousangen does not apply because the pair is not a dragon.
+- **Sanshoku doukou.** Like sanshoku, but over triplets and kans instead of sequences. Honors do not take part.
+- **Sankantsu.** Counts kans only, not their openness. Exactly 3, so suukantsu (yakuman) replaces it with 4.
+
 ## Conflicts between yaku
 
 All of these are handled by the conditions above. No yaku may look at another yaku.
@@ -88,11 +106,15 @@ All of these are handled by the conditions above. No yaku may look at another ya
 | Riichi / Double Riichi | `!ctx.doubleRiichi` in riichi |
 | Iipeikou / Ryanpeikou | 1 or 2 identical sequence pairs |
 | Honitsu / Chinitsu | honitsu needs an honor, chinitsu has none |
-| Chanta / (later) Junchan | chanta needs an honor |
-| Chanta / (later) Honroutou | chanta needs a sequence |
+| Chanta / Junchan | chanta needs an honor, junchan has none |
+| Chanta / Honroutou | chanta needs a sequence, honroutou has none |
+| Junchan / Honroutou | junchan needs a sequence |
+| Sankantsu / Suukantsu | exactly 3 kans; suukantsu is a yakuman anyway |
 | Chiitoitsu / Ryanpeikou | different readings; the scorer keeps the better one |
 
-Things that do **not** conflict: chiitoitsu with tanyao, honitsu or chinitsu; toitoi with sanankou; yakuhai with everything but chiitoitsu.
+Things that do **not** conflict: chiitoitsu with tanyao, honitsu, chinitsu or honroutou; toitoi with sanankou, honroutou or sanshoku doukou; shousangen with the dragon yakuhai; junchan with chinitsu (e.g. `123m123m789m999m11m`); yakuhai with everything but chiitoitsu.
+
+Regular yaku never need to exclude yakuman: as soon as a reading has a yakuman, the scorer keeps only the yakuman.
 
 ## Example hands for tests
 
@@ -113,6 +135,70 @@ Tile strings use the project's notation (`parseTiles`). Check each hand's readin
 | Chanta | `123m789p789s111z55z` | no honor: junchan; no sequence: honroutou |
 | Honitsu | `111m234m567m999m22z` | `111m234m567m999m22m`: chinitsu |
 | Chinitsu | `111m234m567m999m22m` | any honor or second suit |
+| Junchan | `123m789p789s123s99m` | `123m789p789s111z99m`: has an honor, chanta |
+| Honroutou | `111m999p111s111z99s`; chiitoitsu `1199m1199p11s1122z` | `111m999p111s999s99m`: no honor, chinroutou |
+| Shousangen | `555z666z77z123m456p` | `555z666z777z123m11p`: daisangen; `555z66z123m456p789s`: one dragon triplet |
+| Sanshoku Doukou | `222m222p222s456s11z` | `222m222p333s456s11z`: numbers differ |
+| Sankantsu | three kans (melds) + `456m11z` | two kans |
+
+## Yakuman
+
+A yakuman is an ordinary `Yaku` whose han function returns `kYakumanHan` (13), or `2 * kYakumanHan` for a double yakuman. The scorer already does the rest (`Scorer::score`):
+
+- As soon as one yaku of a reading returns `>= kYakumanHan`, only the yakuman count; regular yaku and dora are dropped.
+- `RuleSet::doubleYakuman`: off, every yakuman counts as 13 even if it returns 26.
+- `RuleSet::stackYakuman`: off, only the highest yakuman of the reading counts; on, they add up.
+- `basicPoints` turns the sum into 8000 basic points per 13 han.
+
+So a double yakuman and its single version are **one** `Yaku` entry that returns 13 or 26, never two entries. Different yakuman (daisangen and tsuuiisou, say) are separate entries and stack when the rule allows it.
+
+### The yakuman
+
+| Name | Value | Forms | Closed only | Condition |
+|---|---|---|---|---|
+| Kokushi Musou | 13, 26 (13-sided wait) | Kokushi | yes (form) | `form == Kokushi`. Double when the hand without the winning tile holds all 13 kinds once (a 13-sided wait). |
+| Suuankou | 13, 26 (tanki) | Regular | yes | 4 `Triplet` / `Kan` blocks with `!block.open`. Double when `reading.wait == Tanki`. A shanpon ron opens one triplet, so it is then only sanankou + toitoi. |
+| Daisangen | 13 | Regular | no | `Triplet` / `Kan` of all three dragons. |
+| Shousuushii | 13 | Regular | no | Three wind `Triplet` / `Kan` blocks and a wind `Pair`. |
+| Daisuushii | 26 | Regular | no | `Triplet` / `Kan` of all four winds. |
+| Tsuuiisou | 13 | Regular, Chiitoitsu | no | Every block is an honor block. |
+| Chinroutou | 13 | Regular | no | Every block is a terminal `Triplet` / `Kan` / `Pair` (no honors, no sequences). |
+| Ryuuiisou | 13 | Regular | no | Every tile is one of 2s 3s 4s 6s 8s and 6z (green dragon). Sequences can only be 234s. The green dragon is not required. |
+| Chuuren Poutou | 13, 26 (9-sided wait) | Regular | yes | One suit, and the tile counts are 1112345678999 plus one extra tile of that suit. Double when the hand without the winning tile is exactly 1112345678999. |
+| Suukantsu | 13 | Regular | no | 4 `Kan` blocks, open or closed. |
+| Tenhou | 13 | any | yes | The dealer wins by tsumo on their first draw. |
+| Chiihou | 13 | any | yes | A non-dealer wins by tsumo on their first draw, with no call (closed kan included) before it. |
+
+Details:
+
+- **Shape checks without blocks.** Kokushi's 13-sided wait and chuuren poutou look at tile counts, not blocks: take `ctx.hand.counts()` (the complete hand, winning tile included) and remove `ctx.winTile` to get the hand before the win. Chuuren needs no melds at all (`ctx.hand.meldCount() == 0`; a closed kan breaks the shape too).
+- **Suuankou and the scorer.** Tanki suuankou has one reading with `wait == Tanki`; a shanpon reading of the same hand (if any) returns 13 or 0. The scorer keeps the best reading, so the double wins on its own.
+- **Shousuushii / daisuushii.** Separated by the pair: shousuushii needs the wind pair, so with four wind triplets it cannot fire. Wind yakuhai do not matter, the yakuman replaces them.
+- **Tsuuiisou on chiitoitsu.** Seven different honor pairs are possible (there are exactly seven honors), so chiitoitsu counts. Chinroutou and ryuuiisou cannot be chiitoitsu (only six terminal kinds, six green kinds), so they need no chiitoitsu branch.
+- **Daisangen and shousangen**, **daisuushii and shousuushii**, **suukantsu and sankantsu**: the regular yaku of each pair is dropped by the scorer anyway; the yakuman need no exclusion against them.
+- **Tenhou and chiihou need context.** `WinContext` has no first-draw flag yet. Add `bool firstDraw` and set it in `tsumoContext` (`src/game/LegalActions.cpp`) from `player.firstTurn() && !state.anyCall`; `anyCall` is also set by kans, so a closed kan ends the first go-around too. Tenhou: `ctx.firstDraw && ctx.seatWind == Honor::East`; chiihou: `ctx.firstDraw && ctx.seatWind != Honor::East`. A rinshan tile is not a first draw: it follows a kan, which sets `anyCall`.
+- **Not planned:** renhou (ron before the first own draw) differs too much between rule sets; it can come later as a `RuleSet` option.
+
+### Not a yaku: nagashi mangan
+
+Nagashi mangan (all discards terminals and honors, none called, at an exhaustive draw) is no win: there is no winning hand to score. It lives in the round controller, not in `Yaku.cpp`, and is implemented that way: `RuleSet::nagashiMangan`, checked in `RoundController::finishExhaustiveDraw`, reported in `RoundResult::nagashi` and the `ExhaustiveDraw` event, and paid by `payments` like a mangan tsumo for each such player. It replaces the tenpai payments; honba are not paid and stay on the table with the riichi sticks; the dealer keeps the seat when tenpai or with their own nagashi mangan.
+
+### Example hands for tests
+
+| Yakuman | Hand with it | Case without it / double |
+|---|---|---|
+| Kokushi | `19m19p19s11234567z` [7z]: single wait (the 1z pair was there before) | same hand [1z]: 13-sided wait, double |
+| Suuankou | `111m222p333s444s55z` tsumo [2p] | same hand ron [2p]: shanpon ron, only sanankou + toitoi; [5z]: tanki, double |
+| Daisangen | `555z666z777z123m11p` | `555z666z77z123m456p`: shousangen |
+| Shousuushii | `111z222z333z44z123m` | `111z222z333z444z11m`: daisuushii |
+| Daisuushii | `111z222z333z444z11m` | three wind triplets only |
+| Tsuuiisou | `111z222z555z666z77z`; chiitoitsu `11223344556677z` | any number tile |
+| Chinroutou | `111m999m111p999s11s` | an honor: honroutou |
+| Ryuuiisou | `234s234s666s888s66z` | `234s234s666s888s55z`: white dragon |
+| Chuuren Poutou | `11123455678999m` [9m] | same hand [5m]: 9-sided wait (1112345678999 before), double |
+| Suukantsu | four kans (melds) + `1z` [1z] | three kans: sankantsu |
+| Tenhou | dealer, first draw tsumo | after a closed kan |
+| Chiihou | non-dealer, first draw tsumo | after any call before |
 
 ## Implementation hints
 

@@ -57,6 +57,13 @@ bool fourSameWinds(const RoundState& state) {
            });
 }
 
+// Nagashi mangan: every discard a terminal or honor, and none of them called.
+bool hasNagashi(const PlayerState& player) {
+    return !player.river.empty() && std::all_of(player.river.begin(), player.river.end(), [](const RiverTile& discard) {
+               return discard.tile.isTerminalOrHonor() && !discard.calledAway;
+           });
+}
+
 }  // namespace
 
 RoundController::RoundController(RoundState state, const Scorer& scorer, std::optional<int> viewerSeat)
@@ -166,16 +173,13 @@ void RoundController::closedKan(const Action& action) {
 void RoundController::discard(const Action& action) {
     PlayerState& player = state_.currentPlayer();
     const bool declaringRiichi = action.type == ActionType::Riichi;
-    // TODO add tsumogiri when added to Action: with an identical tile elsewhere
-    // in the hand, this cannot tell which of the two was discarded.
-    const bool tsumogiri = state_.tileDraw && action.tile == player.tileDrawn();
 
     if (declaringRiichi) {
         player.declareRiichi(state_.anyCall);
     } else {
         player.ippatsu = false;
     }
-    player.discard(action.tile, tsumogiri, declaringRiichi);
+    player.discard(action.tile, action.tsumogiri, declaringRiichi);
     player.temporaryFuriten = false;
 
     GameEvent event{EventType::Discard, state_.current};
@@ -403,6 +407,10 @@ void RoundController::finishExhaustiveDraw() {
         result.tenpai[static_cast<size_t>(seat)] = true;
         event.revealedHands[static_cast<size_t>(seat)] = hand;
     }
+    if (rules().nagashiMangan) {
+        for (int seat = 0; seat < 4; ++seat) result.nagashi[static_cast<size_t>(seat)] = hasNagashi(state_.player(seat));
+    }
+    event.nagashi = result.nagashi;
     finish(std::move(result), std::move(event));
 }
 

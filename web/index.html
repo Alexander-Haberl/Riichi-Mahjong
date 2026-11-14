@@ -24,6 +24,15 @@
     </header>
 
     <section id="table" hidden>
+        <!-- Display and play options, left of the board. -->
+        <aside id="options">
+            <h2>Options</h2>
+            <label><input id="gray-tsumogiri" type="checkbox" checked> Gray out tsumogiri discards</label>
+            <label><input id="auto-win" type="checkbox"> Auto-call win (tsumo, ron)</label>
+            <label><input id="auto-pass" type="checkbox"> Auto-pass on chi, pon and kan</label>
+            <label><input id="auto-discard" type="checkbox"> Auto-discard in riichi</label>
+        </aside>
+
         <div id="play">
             <!-- One layer per seat, by position: 0 is the human at the bottom, then
                  1 right, 2 top, 3 left. Each layer is laid out as if it were at the

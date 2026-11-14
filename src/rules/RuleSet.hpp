@@ -43,6 +43,10 @@ struct RuleSet {
     bool multipleRon = true;
     // Three rons on the same tile abort the round (sanchahou), whatever multipleRon says.
     bool tripleRonAborts = true;
+    // Nagashi mangan: at an exhaustive draw, a player whose discards are all
+    // terminals and honors, none of them called, is paid a mangan tsumo
+    // instead of the tenpai payments. Honba and riichi sticks stay on the table.
+    bool nagashiMangan = true;
 
     // Abortive draws
     // Nine kinds of terminals and honors on the first turn (the player chooses).

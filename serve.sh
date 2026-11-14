@@ -20,4 +20,16 @@ emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release > /dev/null
 cmake --build build-web -j "$(nproc)"
 
 echo "Serving on http://127.0.0.1:$port (Ctrl+C stops it)"
-exec python3 -m http.server "$port" --bind 127.0.0.1 --directory build-web/site
+# Python's http.server, but telling the browser not to cache: otherwise it may
+# keep using an old engine.wasm next to newer scripts after a rebuild.
+exec python3 -c '
+import functools, http.server, sys
+
+class NoCacheHandler(http.server.SimpleHTTPRequestHandler):
+    def end_headers(self):
+        self.send_header("Cache-Control", "no-store")
+        super().end_headers()
+
+handler = functools.partial(NoCacheHandler, directory=sys.argv[2])
+http.server.ThreadingHTTPServer(("127.0.0.1", int(sys.argv[1])), handler).serve_forever()
+' "$port" build-web/site

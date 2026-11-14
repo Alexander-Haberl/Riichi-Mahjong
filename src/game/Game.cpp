@@ -37,6 +37,19 @@ std::array<int, 4> payments(const RoundResult& result, int dealer, int honba, in
             break;
         }
         case RoundEnd::ExhaustiveDraw: {
+            // Nagashi mangan is paid like a mangan tsumo, without honba, and replaces the tenpai payments.
+            if (std::count(result.nagashi.begin(), result.nagashi.end(), true) > 0) {
+                constexpr int kManganBasicPoints = 2000;
+                for (int winner = 0; winner < 4; ++winner) {
+                    if (!result.nagashi[static_cast<size_t>(winner)]) continue;
+                    for (int seat = 0; seat < 4; ++seat) {
+                        if (seat == winner) continue;
+                        const int factor = (seat == dealer || winner == dealer) ? 2 : 1;
+                        pay(seat, winner, roundUpToHundred(kManganBasicPoints * factor));
+                    }
+                }
+                break;
+            }
             const int tenpai = static_cast<int>(std::count(result.tenpai.begin(), result.tenpai.end(), true));
             if (tenpai == 0 || tenpai == 4) break;
             for (size_t seat = 0; seat < 4; ++seat) {
@@ -177,7 +190,8 @@ void Game::advance(const RoundResult& result, const RoundState& finished, const 
             riichiSticks_ = 0;  // taken by the winner
             break;
         case RoundEnd::ExhaustiveDraw:
-            dealerKeeps = rules().renchanOnDealerTenpai && result.tenpai[static_cast<size_t>(dealer_)];
+            dealerKeeps = result.nagashi[static_cast<size_t>(dealer_)] ||
+                          (rules().renchanOnDealerTenpai && result.tenpai[static_cast<size_t>(dealer_)]);
             ++honba_;
             riichiSticks_ = finished.riichiSticks;
             break;

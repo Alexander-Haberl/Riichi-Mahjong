@@ -2,6 +2,7 @@
 // choices back to the engine.
 import createEngine from "./engine.js";
 import { clearActions, showActions } from "./actions.js";
+import { autoChoice } from "./options.js";
 import { hideResult, showGameResult, showRoundResult } from "./results.js";
 import { loadTiles, showStep } from "./table.js";
 
@@ -41,6 +42,7 @@ function describe(event) {
     if (event.riichiDiscard) parts.push("(riichi)");
     if (event.meld) parts.push(event.meld.type);
     if (event.abortReason) parts.push(event.abortReason);
+    event.nagashi.forEach((has, seat) => { if (has) parts.push(`nagashi mangan seat ${seat}`); });
     for (const win of event.wins) {
         const yaku = win.yaku.map((source) => `${source.name} ${source.han}`).join(", ");
         parts.push(`seat ${win.seat}: ${win.han} han ${win.fu} fu [${yaku}]`);
@@ -58,6 +60,7 @@ const PAUSE = {
     DoraRevealed: 300,
     roundEnd: 400,        // Tsumo, Ron, Abort, ExhaustiveDraw
     RoundEnd: 3000,       // time to look at the revealed hands before the result screen
+    auto: 400,            // before an action the options choose for the human
 };
 
 const ROUND_ENDINGS = ["Tsumo", "Ron", "Abort", "ExhaustiveDraw"];
@@ -86,6 +89,7 @@ function sleep(milliseconds) {
 
 // True while steps are being played; the human's clicks are ignored then.
 let playing = false;
+let lastView = null;  // the table after the latest step, for the options
 
 function choose(actionIndex) {
     if (playing) return;
@@ -106,6 +110,7 @@ async function play() {
         if (game !== current) return;  // a new game was started meanwhile
         log(describe(step.event));
         showStep(step);
+        lastView = step.view;
 
         if (ROUND_ENDINGS.includes(step.event.type)) roundEnding = step.event;
         if (step.event.type === "RoundEnd" && roundEnding) {
@@ -118,7 +123,14 @@ async function play() {
 
     const decision = JSON.parse(game.pending());
     if (decision) {
-        showActions(decision, choose);
+        const auto = autoChoice(decision, lastView);
+        if (auto === null) {
+            showActions(decision, choose);
+            return;
+        }
+        await sleep(PAUSE.auto);
+        if (game !== current) return;
+        choose(auto);
     } else {
         log(`Result: ${game.result()}`);
     }

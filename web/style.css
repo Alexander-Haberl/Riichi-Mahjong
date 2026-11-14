@@ -45,6 +45,21 @@ header p {
 
 /* As wide as the board, so that long rows of action buttons wrap instead of
    widening the column and pushing the board off centre. */
+#options {
+    grid-column: 1;
+    justify-self: end;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+    width: var(--log-width);
+    max-width: 96vw;
+}
+
+#options h2 {
+    margin: 0;
+    font-size: 1.1rem;
+}
+
 #play {
     grid-column: 2;
     width: var(--board);
@@ -179,6 +194,13 @@ header p {
 
 .hand .discardable:hover {
     transform: translateY(-12%);
+}
+
+/* Grayed out: hand tiles that cannot be discarded now, and river tiles
+   discarded right after drawing them (tsumogiri), if that option is on. */
+.hand .blocked,
+#board.gray-tsumogiri .river .tsumogiri {
+    filter: grayscale(0.7) brightness(0.6);
 }
 
 .furiten {

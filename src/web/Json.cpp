@@ -125,7 +125,8 @@ void to_json(json& out, const Action& action) {
     const bool hasTile = action.type != ActionType::Pass && action.type != ActionType::KyuushuKyuuhai;
     out = {{"type", action.type},
            {"tile", hasTile ? json(action.tile) : json(nullptr)},
-           {"handTiles", action.handTiles}};
+           {"handTiles", action.handTiles},
+           {"tsumogiri", action.tsumogiri}};
 }
 
 void to_json(json& out, const GameEvent& event) {
@@ -141,6 +142,7 @@ void to_json(json& out, const GameEvent& event) {
            {"revealedHands", std::move(revealedHands)},
            {"uraDoraIndicators", event.uraDoraIndicators},
            {"abortReason", orNull(event.abortReason)},
+           {"nagashi", event.nagashi},
            {"scoreChanges", event.scoreChanges}};
 }
 

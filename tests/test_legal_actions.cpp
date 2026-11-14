@@ -57,6 +57,56 @@ TEST_CASE("Each distinct tile can be discarded once") {
     CHECK(tilesOf(discards) == parseTiles("12m05p"));  // red and normal five separately
 }
 
+TEST_CASE("The drawn tile is a tsumogiri discard, an identical copy in the hand a second one") {
+    auto discardsOf = [](const RoundState& state, Tile t) {
+        std::vector<Action> result;
+        for (const Action& a : ofType(legalTurnActions(state, testRules(), noYaku()), ActionType::Discard)) {
+            if (a.tile == t) result.push_back(a);
+        }
+        return result;
+    };
+
+    SECTION("no copy: one action") {
+        RoundState state = afterDraw("123m456p789s11z2z3z");
+        const auto actions = discardsOf(state, tile("3z"));
+        REQUIRE(actions.size() == 1);
+        CHECK(actions[0].tsumogiri);
+        CHECK_FALSE(discardsOf(state, tile("2z"))[0].tsumogiri);
+    }
+    SECTION("a copy in the hand: the tsumogiri discard first, then the copy") {
+        RoundState state = afterDraw("123m456p789s11z2z2z");
+        const auto actions = discardsOf(state, tile("2z"));
+        REQUIRE(actions.size() == 2);
+        CHECK(actions[0].tsumogiri);
+        CHECK_FALSE(actions[1].tsumogiri);
+    }
+    SECTION("a red five and a normal five are not copies") {
+        RoundState state = afterDraw("123m456p789s11z05m");
+        CHECK(discardsOf(state, tile("5m")).size() == 1);
+        CHECK(discardsOf(state, tile("0m")).size() == 1);
+        CHECK_FALSE(discardsOf(state, tile("0m"))[0].tsumogiri);
+    }
+    SECTION("after a call nothing is tsumogiri") {
+        RoundState state = afterDraw("123m456p789s11z2z2z");
+        state.tileDraw = false;
+        const auto actions = discardsOf(state, tile("2z"));
+        REQUIRE(actions.size() == 1);
+        CHECK_FALSE(actions[0].tsumogiri);
+    }
+}
+
+TEST_CASE("Riichi discards are tsumogiri the same way") {
+    RoundState state = afterDraw("123m456p789s111z22z");  // tenpai after either 2z, among others
+    std::vector<Action> riichi;
+    for (const Action& a : ofType(legalTurnActions(state, testRules(), noYaku()), ActionType::Riichi)) {
+        if (a.tile == tile("2z")) riichi.push_back(a);
+    }
+    REQUIRE(riichi.size() == 2);
+    CHECK(riichi[0].tile == tile("2z"));
+    CHECK(riichi[0].tsumogiri);
+    CHECK_FALSE(riichi[1].tsumogiri);
+}
+
 TEST_CASE("Riichi is offered for discards that leave the hand tenpai") {
     RoundState state = afterDraw("123m456p789s111z2z3z");
     RuleSet rules = testRules();
@@ -90,6 +140,7 @@ TEST_CASE("In riichi only the drawn tile can be discarded") {
     state.players[0].riichi = true;
     auto discards = ofType(legalTurnActions(state, testRules(), noYaku()), ActionType::Discard);
     CHECK(tilesOf(discards) == parseTiles("5m"));
+    CHECK(discards[0].tsumogiri);
 }
 
 TEST_CASE("Tsumo needs a complete hand and a yaku") {

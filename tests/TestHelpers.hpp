@@ -51,6 +51,7 @@ inline RuleSet testRules() {
     rules.riichiNeeds1000Points = true;
     rules.multipleRon = true;
     rules.tripleRonAborts = true;
+    rules.nagashiMangan = true;
     rules.kyuushuKyuuhai = true;
     rules.suufonRenda = true;
     rules.suuchaRiichi = true;
@@ -142,6 +143,7 @@ public:
             if (best) return *best;
         }
         for (const Action& a : legal) {
+            // The drawn tile; its tsumogiri discard comes first. After a call, the newest tile.
             if (a.type == ActionType::Discard && a.tile == view.hand().lastTile()) return a;
         }
         return *std::find_if(legal.begin(), legal.end(), [](const Action& a) { return a.type == ActionType::Discard; });
