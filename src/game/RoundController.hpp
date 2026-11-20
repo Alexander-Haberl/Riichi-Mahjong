@@ -7,10 +7,11 @@
 #include "game/Action.hpp"
 #include "game/GameStep.hpp"
 #include "game/LegalActions.hpp"
-#include "game/Player.hpp"
+#include "game/IPlayer.hpp"
+#include "game/PlayerView.hpp"
 #include "game/RoundState.hpp"
-#include "rules/RuleSet.hpp"
-#include "rules/Scorer.hpp"
+#include "scoring/RuleSet.hpp"
+#include "scoring/Scorer.hpp"
 
 namespace mj {
 

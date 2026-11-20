@@ -7,8 +7,8 @@
 #include "core/Hand.hpp"
 #include "core/Tile.hpp"
 #include "game/Action.hpp"
-#include "game/Player.hpp"
-#include "rules/Scorer.hpp"
+#include "game/PlayerView.hpp"
+#include "scoring/Scorer.hpp"
 
 // What the engine hands to a UI: one GameStep per thing that happened, and a
 // Decision when it needs an answer before it can go on.

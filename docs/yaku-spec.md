@@ -1,10 +1,10 @@
 # Yaku specification
 
-Implementation notes for all yaku of this project, in `src/rules/Yaku.cpp`. All yaku and yakuman described here are implemented, including the double yakuman. Nagashi mangan is not a yaku but is implemented in the round controller (see below). Not implemented: renhou.
+Implementation notes for all yaku of this project, in `src/scoring/Yaku.cpp`. All yaku and yakuman described here are implemented, including the double yakuman. Nagashi mangan is not a yaku but is implemented in the round controller (see below). Not implemented: renhou.
 
 ## How a yaku plugs in
 
-A yaku is a `Yaku` value (`src/rules/Yaku.hpp`), a name plus a function, and is listed in the table in `standardYaku`:
+A yaku is a `Yaku` value (`src/scoring/Yaku.hpp`), a name plus a function, and is listed in the table in `standardYaku`:
 
 ```cpp
 using HanFunction = std::function<int(const Reading&, const WinContext&)>;  // 0 = not present
@@ -17,7 +17,7 @@ struct Yaku {
 
 `Scorer::score` calls every yaku once per `Reading` and adds up the results. It does not know about conflicts between yaku, so **each yaku's condition has to exclude the yaku it conflicts with** (see the conflict table below).
 
-What the data means (`src/rules/Decomposer.hpp`, `src/rules/WinContext.hpp`):
+What the data means (`src/core/Decomposer.hpp`, `src/scoring/WinContext.hpp`):
 
 - `reading.form`: `Regular`, `Chiitoitsu` or `Kokushi`.
 - `reading.blocks`: concealed blocks **and called melds**, so a yaku sees the whole hand.
@@ -74,7 +74,7 @@ Details:
 - **Tanyao and the rule.** `RuleSet::kuitan` (default true): tanyao also counts on an open hand. The han function does not receive the rules, so `tanyao(rules.kuitan)` returns a function that captures the flag. With `kuitan == false`, an open hand returns 0.
 - **Yakuhai.** Five separate `Yaku` entries, so each shows up on its own in `ScoreResult::hanSources`: White, Green, Red, Seat Wind, Round Wind. Each returns 1 if the reading has a `Triplet` or `Kan` of that tile. A pair does not count. For the winds compare with `Tile::honor(ctx.seatWind)` / `Tile::honor(ctx.roundWind)`. A wind that is both seat and round wind therefore gives 2 han without special handling.
 - **`identicalSequencePairs(reading)`.** A shared helper. For each `first` among the `Sequence` blocks, take `count / 2`, and sum. Three identical sequences give 1, four give 2.
-- **Pinfu.** Same shape as the "closed hand without fu" case in `unroundedFu` (`src/rules/Scorer.cpp`), but the yaku needs its own check, including `wait == Ryanmen`.
+- **Pinfu.** Same shape as the "closed hand without fu" case in `unroundedFu` (`src/scoring/Scorer.cpp`), but the yaku needs its own check, including `wait == Ryanmen`.
 - **Sanankou.** Relies on `block.open`: on a shanpon ron, that triplet is open, so three closed-looking triplets can drop to two. Exactly this case must be tested. On tsumo the triplet stays closed. Closed kans count; open kans do not. Use `>= 3`: suuankou will replace it later as a yakuman.
 - **Chanta needs an honor.** A hand with sequences and terminals but no honors is junchan, which is a later yaku. Until then such a hand gets neither yaku; that is intended.
 - **Honitsu / chinitsu / tanyao on chiitoitsu.** These work by iterating over the seven pairs, and combine with chiitoitsu.

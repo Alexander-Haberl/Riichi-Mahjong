@@ -1,4 +1,4 @@
-#include "rules/Shanten.hpp"
+#include "core/Shanten.hpp"
 
 #include <algorithm>
 

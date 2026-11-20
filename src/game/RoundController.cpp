@@ -4,7 +4,7 @@
 #include <stdexcept>
 #include <string>
 
-#include "rules/Decomposer.hpp"
+#include "core/Decomposer.hpp"
 
 namespace mj {
 

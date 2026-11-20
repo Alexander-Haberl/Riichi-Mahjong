@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include "TestHelpers.hpp"
-#include "rules/Scorer.hpp"
+#include "scoring/Scorer.hpp"
 
 using namespace mj;
 using namespace mj::test;

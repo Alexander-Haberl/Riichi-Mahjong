@@ -3,7 +3,7 @@
 #include <algorithm>
 
 #include "TestHelpers.hpp"
-#include "rules/Decomposer.hpp"
+#include "core/Decomposer.hpp"
 
 using namespace mj;
 using namespace mj::test;

@@ -4,7 +4,7 @@
 #include <string>
 
 #include "game/Game.hpp"
-#include "players/ShantenPlayer.hpp"
+#include "ai/ShantenPlayer.hpp"
 
 // What the browser sees of the engine. Everything goes out as a JSON string
 // (see Json.hpp) and comes back as an index, so this class needs no Emscripten

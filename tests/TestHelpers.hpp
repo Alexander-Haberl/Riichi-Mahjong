@@ -7,10 +7,11 @@
 #include <vector>
 
 #include "core/Tile.hpp"
-#include "game/Player.hpp"
-#include "rules/RuleSet.hpp"
-#include "rules/Scorer.hpp"
-#include "rules/Shanten.hpp"
+#include "game/IPlayer.hpp"
+#include "game/PlayerView.hpp"
+#include "scoring/RuleSet.hpp"
+#include "scoring/Scorer.hpp"
+#include "core/Shanten.hpp"
 
 namespace mj::test {
 

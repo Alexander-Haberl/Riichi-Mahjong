@@ -1,4 +1,4 @@
-#include "rules/Yaku.hpp"
+#include "scoring/Yaku.hpp"
 
 #include <algorithm>
 #include <array>

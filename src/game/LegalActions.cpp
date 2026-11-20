@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-#include "rules/Decomposer.hpp"
+#include "core/Decomposer.hpp"
 
 namespace mj{
     namespace {
@@ -282,7 +282,6 @@ namespace mj{
             if (abortiveDraw(state, rules)){
                 result.push_back(Action{ActionType::KyuushuKyuuhai});
             }
-            // TODO discarding the drawn tile is a different action than discarding the same tile from the inside of the hand
         }
         for (auto a : computeDiscards(state, rules)){
             result.push_back(a);

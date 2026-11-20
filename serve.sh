@@ -1,18 +1,27 @@
 #!/bin/bash
-# Needs bash: emsdk_env.sh cannot find its own folder in a plain sh like dash.
 # Builds the browser version and serves it on this machine only.
 # Usage: ./serve.sh [port]
+# Needs Emscripten: either emcmake on the PATH (e.g. after sourcing emsdk_env.sh),
+# or EMSDK_DIR set to the emsdk folder, whose environment this script then loads.
 # To pick up changes, run this again or just `cmake --build build-web`, then reload the page.
+# Needs bash: emsdk_env.sh cannot find its own folder in a plain sh like dash.
 set -e
 
 cd "$(dirname "$0")"
 port="${1:-8000}"
-emsdk="${EMSDK_DIR:-$HOME/Dokumente/Programming/dependencies/emsdk}"
 
-source "$emsdk/emsdk_env.sh" > /dev/null 2>&1
+if ! command -v emcmake > /dev/null && [ -n "${EMSDK_DIR:-}" ]; then
+    if [ ! -f "$EMSDK_DIR/emsdk_env.sh" ]; then
+        echo "EMSDK_DIR is set to $EMSDK_DIR, but there is no emsdk_env.sh in it." >&2
+        exit 1
+    fi
+    source "$EMSDK_DIR/emsdk_env.sh" > /dev/null 2>&1
+fi
 
 if ! command -v emcmake > /dev/null; then
-    echo "emcmake not found: no emsdk in $emsdk? Set EMSDK_DIR to its folder." >&2
+    echo "Emscripten not found. Either put emcmake on the PATH (source emsdk_env.sh)," >&2
+    echo "or set EMSDK_DIR to your emsdk folder, e.g.:" >&2
+    echo "    EMSDK_DIR=~/emsdk ./serve.sh" >&2
     exit 1
 fi
 

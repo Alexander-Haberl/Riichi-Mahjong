@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-#include "rules/Shanten.hpp"
+#include "core/Shanten.hpp"
 
 using namespace mj;
 

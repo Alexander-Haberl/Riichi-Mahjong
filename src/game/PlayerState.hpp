@@ -5,7 +5,7 @@
 
 #include "core/Hand.hpp"
 #include "core/Tile.hpp"
-#include "rules/Decomposer.hpp"
+#include "core/Decomposer.hpp"
 
 namespace mj {
 

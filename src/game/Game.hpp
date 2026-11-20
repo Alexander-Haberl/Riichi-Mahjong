@@ -6,10 +6,11 @@
 #include <vector>
 
 #include "game/GameStep.hpp"
-#include "game/Player.hpp"
+#include "game/IPlayer.hpp"
+#include "game/PlayerView.hpp"
 #include "game/RoundController.hpp"
-#include "rules/RuleSet.hpp"
-#include "rules/Scorer.hpp"
+#include "scoring/RuleSet.hpp"
+#include "scoring/Scorer.hpp"
 
 namespace mj {
 
