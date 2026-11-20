@@ -4,8 +4,8 @@
 #include <stdexcept>
 #include <vector>
 
-#include "players/CallingPlayer.hpp"
-#include "players/ShantenPlayer.hpp"
+#include "ai/CallingPlayer.hpp"
+#include "ai/ShantenPlayer.hpp"
 #include "web/Json.hpp"
 #include "web/Scenarios.hpp"
 

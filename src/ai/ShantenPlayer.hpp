@@ -2,7 +2,8 @@
 
 #include <vector>
 
-#include "game/Player.hpp"
+#include "game/IPlayer.hpp"
+#include "game/PlayerView.hpp"
 
 namespace mj {
 

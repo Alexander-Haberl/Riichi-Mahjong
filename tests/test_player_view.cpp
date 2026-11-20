@@ -1,7 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 
 #include "TestHelpers.hpp"
-#include "game/Player.hpp"
+#include "game/PlayerView.hpp"
 
 using namespace mj;
 using namespace mj::test;

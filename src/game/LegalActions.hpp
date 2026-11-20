@@ -5,9 +5,9 @@
 
 #include "game/Action.hpp"
 #include "game/RoundState.hpp"
-#include "rules/RuleSet.hpp"
-#include "rules/Scorer.hpp"
-#include "rules/WinContext.hpp"
+#include "scoring/RuleSet.hpp"
+#include "scoring/Scorer.hpp"
+#include "scoring/WinContext.hpp"
 
 namespace mj {
 

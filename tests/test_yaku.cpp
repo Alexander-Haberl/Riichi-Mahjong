@@ -7,8 +7,8 @@
 
 #include "TestHelpers.hpp"
 #include "game/LegalActions.hpp"
-#include "rules/Scorer.hpp"
-#include "rules/Yaku.hpp"
+#include "scoring/Scorer.hpp"
+#include "scoring/Yaku.hpp"
 
 using namespace mj;
 using namespace mj::test;

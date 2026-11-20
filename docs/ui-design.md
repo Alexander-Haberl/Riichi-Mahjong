@@ -4,7 +4,7 @@ How the browser UI works and how it talks to the engine. The engine and the inte
 
 ## Running it
 
-`./serve.sh [port]` builds into `build-web` and serves `build-web/site` on `http://127.0.0.1:8000`, reachable from this machine only. After a change, run `cmake --build build-web` in a shell with the emsdk active (source ~/Dokumente/Programming/dependencies/emsdk/emsdk_env.sh), or `./serve.sh` again, and reload the page. Emscripten is in `~/Dokumente/Programming/dependencies/emsdk`; `EMSDK_DIR` overrides that path.
+`./serve.sh [port]` builds into `build-web` and serves `build-web/site` on `http://127.0.0.1:8000`, reachable from this machine only. It needs Emscripten: either `emcmake` on the `PATH` (after `source <emsdk>/emsdk_env.sh`), or `EMSDK_DIR` set to the emsdk folder, e.g. `EMSDK_DIR=~/emsdk ./serve.sh`. The server tells the browser not to cache, so after a rebuild a normal reload shows the new version. After a change, run `./serve.sh` again, or `cmake --build build-web` in a shell with the emsdk active, and reload the page.
 
 The page's sources are in `web/`, and the build copies them next to the generated `engine.js` and `engine.wasm`.
 
@@ -120,4 +120,4 @@ Done: pacing (`play()` in `main.js` pauses before each step, clicks are ignored 
 
 The rules are `webRules()` in `src/web/WebGame.hpp`, the standard rules for now. The seed comes from the browser and is shown, so a game can be replayed.
 
-The AI is `ShantenPlayer` (`src/players/`), which is temporary and fast enough for the page's main thread. A stronger AI that thinks for seconds would need a Web Worker, because `submit()` would otherwise freeze the page. Replacing the AI also means changing its name: the final scores screen calls the AIs "ShantenAI", a fixed string (`AI_NAME` in `web/results.js`). Better then: `WebGame` sends each seat's name in the JSON.
+The AI is `ShantenPlayer` (`src/ai/`), which is temporary and fast enough for the page's main thread. A stronger AI that thinks for seconds would need a Web Worker, because `submit()` would otherwise freeze the page. Replacing the AI also means changing its name: the final scores screen calls the AIs "ShantenAI", a fixed string (`AI_NAME` in `web/results.js`). Better then: `WebGame` sends each seat's name in the JSON.

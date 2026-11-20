@@ -3,7 +3,6 @@
 #include <array>
 #include <vector>
 
-#include "game/Action.hpp"
 #include "game/RoundState.hpp"
 
 namespace mj {
@@ -87,16 +86,6 @@ private:
     int currentSeat_;
     int wallRemaining_;
     std::vector<Tile> doraIndicators_;
-};
-
-// A seat at the table: a human through the UI, or an AI.
-class IPlayer {
-public:
-    virtual ~IPlayer() = default;
-
-    // Picks one of `legal` (never empty). Called on the player's own turn and
-    // whenever they can react to another player's tile.
-    virtual Action chooseAction(const PlayerView& view, const std::vector<Action>& legal) = 0;
 };
 
 }  // namespace mj

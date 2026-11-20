@@ -4,9 +4,9 @@
 #include <string_view>
 #include <vector>
 
-#include "rules/Decomposer.hpp"
-#include "rules/RuleSet.hpp"
-#include "rules/WinContext.hpp"
+#include "core/Decomposer.hpp"
+#include "scoring/RuleSet.hpp"
+#include "scoring/WinContext.hpp"
 
 namespace mj {
 

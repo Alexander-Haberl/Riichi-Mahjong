@@ -1,6 +1,6 @@
 #pragma once
 
-#include "game/Player.hpp"
+#include "game/IPlayer.hpp"
 
 namespace mj {
 

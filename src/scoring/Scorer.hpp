@@ -4,10 +4,10 @@
 #include <string_view>
 #include <vector>
 
-#include "rules/Decomposer.hpp"
-#include "rules/RuleSet.hpp"
-#include "rules/WinContext.hpp"
-#include "rules/Yaku.hpp"
+#include "core/Decomposer.hpp"
+#include "scoring/RuleSet.hpp"
+#include "scoring/WinContext.hpp"
+#include "scoring/Yaku.hpp"
 
 namespace mj {
 

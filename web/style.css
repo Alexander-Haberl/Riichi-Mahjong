@@ -309,6 +309,16 @@ header p {
     padding: 0.2em 1em;
 }
 
+/* The label of riichi mode, next to its Back button. */
+#calls .mode {
+    align-self: center;
+    padding: 0.2em 0.8em;
+    border-radius: 0.3em;
+    background: rgb(0 0 0 / 0.5);
+    color: #ffd54f;
+    font-weight: bold;
+}
+
 /* --- Overlays: the call chooser and the round result ----------------------- */
 
 /* A panel in front of the whole board. The [hidden] attribute only works as

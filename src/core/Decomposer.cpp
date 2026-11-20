@@ -1,4 +1,4 @@
-#include "rules/Decomposer.hpp"
+#include "core/Decomposer.hpp"
 
 #include <algorithm>
 

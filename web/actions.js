@@ -1,6 +1,7 @@
 // The human's choices: discards are clicks on the hand's tiles, every other
-// action is a call button above the hand. A call with several options opens
-// the chooser in front of the board, which shows each option as its tiles.
+// action is a call button above the hand. Riichi switches the hand to the
+// riichi discards; any other call with several options opens the chooser in
+// front of the board, which shows each option as its tiles.
 import { actionMeld, disableDiscards, enableDiscards, tileImage } from "./table.js";
 
 // One button per kind of call, in this order; all kinds of kan share one.
@@ -28,6 +29,7 @@ chooser.back.addEventListener("click", closeChooser);
 // Offers the actions of a decision. onChoose gets the index of the chosen action.
 export function showActions(decision, onChoose) {
     closeChooser();
+    disableDiscards();  // from an earlier riichi mode of this decision
     const actions = decision.legal.map((action, index) => ({ action, index }));
 
     enableDiscards(actions.filter(({ action }) => action.type === "Discard"), onChoose);
@@ -40,7 +42,9 @@ export function showActions(decision, onChoose) {
         const button = document.createElement("button");
         button.textContent = label;
         button.addEventListener("click", () => {
-            if (options.length === 1) {
+            if (types.includes("Riichi")) {
+                chooseRiichiDiscard(decision, options, onChoose);
+            } else if (options.length === 1) {
                 onChoose(options[0].index);
             } else {
                 openChooser(label, options, onChoose);
@@ -49,6 +53,21 @@ export function showActions(decision, onChoose) {
         buttons.push(button);
     }
     callButtons.replaceChildren(...buttons);
+}
+
+// Riichi mode: the hand offers only the riichi discards, and Back returns to
+// all choices of the decision.
+function chooseRiichiDiscard(decision, riichiOptions, onChoose) {
+    disableDiscards();
+    enableDiscards(riichiOptions, onChoose);
+
+    const label = document.createElement("span");
+    label.className = "mode";
+    label.textContent = "Riichi: choose a discard";
+    const back = document.createElement("button");
+    back.textContent = "Back";
+    back.addEventListener("click", () => showActions(decision, onChoose));
+    callButtons.replaceChildren(label, back);
 }
 
 // Removes all choices: once one is made, or when nothing is left to decide.
@@ -79,7 +98,7 @@ function closeChooser() {
 }
 
 // What an option shows: the meld it makes, as it will lie on the table, or
-// else its tile (the riichi discard, for example).
+// else its tile.
 function optionTiles(action) {
     const meld = actionMeld(action);
     if (meld) return [meld];

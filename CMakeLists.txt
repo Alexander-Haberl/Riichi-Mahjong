@@ -34,15 +34,15 @@ add_library(riichi_engine
     src/core/Tile.cpp
     src/core/Hand.cpp
     src/core/Wall.cpp
-    src/rules/Shanten.cpp
-    src/rules/Decomposer.cpp
-    src/rules/Scorer.cpp
-    src/rules/Yaku.cpp
+    src/core/Shanten.cpp
+    src/core/Decomposer.cpp
+    src/scoring/Scorer.cpp
+    src/scoring/Yaku.cpp
     src/game/LegalActions.cpp
     src/game/RoundController.cpp
     src/game/Game.cpp
-    src/players/ShantenPlayer.cpp
-    src/players/CallingPlayer.cpp
+    src/ai/ShantenPlayer.cpp
+    src/ai/CallingPlayer.cpp
 )
 target_include_directories(riichi_engine PUBLIC src)
 target_compile_options(riichi_engine PRIVATE
@@ -91,10 +91,6 @@ if(EMSCRIPTEN)
     add_custom_target(riichi_site ALL
         COMMAND ${CMAKE_COMMAND} -E copy_directory ${CMAKE_SOURCE_DIR}/web ${CMAKE_BINARY_DIR}/site
     )
-else()
-    # --- Game executable ----------------------------------------------------
-    add_executable(riichi src/main.cpp)
-    target_link_libraries(riichi PRIVATE riichi_engine)
 endif()
 
 # --- Tests ------------------------------------------------------------------

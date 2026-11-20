@@ -1,9 +1,9 @@
-#include "players/ShantenPlayer.hpp"
+#include "ai/ShantenPlayer.hpp"
 
 #include <algorithm>
 #include <climits>
 
-#include "rules/Shanten.hpp"
+#include "core/Shanten.hpp"
 
 namespace mj {
 
