@@ -53,9 +53,8 @@ jobs:
           emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release
           cmake --build build-web -j "$(nproc)"
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@v4
         with:
-          # Upload entire repository
           path: './build-web/site'
       - name: Deploy to GitHub Pages
         id: deployment
