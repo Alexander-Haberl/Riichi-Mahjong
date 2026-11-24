@@ -25,7 +25,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Build and run the tests
         run: |
           cmake -S . -B build
@@ -41,9 +41,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
       - name: Setup Pages
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@v6
       - name: Setup Emcmake
         uses: emscripten-core/setup-emsdk@v15
         with:
@@ -53,7 +53,7 @@ jobs:
           emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release
           cmake --build build-web -j "$(nproc)"
       - name: Upload artifact
-        uses: actions/upload-pages-artifact@v4
+        uses: actions/upload-pages-artifact@v5
         with:
           path: './build-web/site'
       - name: Deploy to GitHub Pages
