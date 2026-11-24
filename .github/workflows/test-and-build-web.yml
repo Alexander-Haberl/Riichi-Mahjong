@@ -32,12 +32,9 @@ jobs:
           cmake --build build -j "$(nproc)"
           ./build/riichi_tests
 
-  # deploy job
-  deploy:
+  # build web
+  build:
     needs: test
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -53,9 +50,19 @@ jobs:
           emcmake cmake -S . -B build-web -DCMAKE_BUILD_TYPE=Release
           cmake --build build-web -j "$(nproc)"
       - name: Upload artifact
-        uses: actions/upload-artifact@v7
+        id: deployment
+        uses: actions/upload-pages-artifact@v4
         with:
           path: './build-web/site'
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v5
+
+    # deploy site
+    deploy:
+      needs: build
+      environment:
+        name: github-pages
+        url: ${{ steps.deployment.outputs.page_url }}
+      runs-on: ubuntu-latest
+      steps:
+        - name: Deploy to GitHub Pages
+          id: deployment
+          uses: actions/deploy-pages@v5
